@@ -1979,6 +1979,10 @@ body{
   
   /* background-color: #E0B589; */
 }
+.wrapper{
+  max-width: 400px;
+  margin: 0 auto;
+}
 
 .warning{
   color:crimson;
