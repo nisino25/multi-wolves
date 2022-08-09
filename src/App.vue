@@ -6,10 +6,15 @@
       <div class="container" v-if="readyToPlay">
 
         <div class="nav" style="margin-bottom: 10px;">
-          <strong>Werewolf</strong>
-          <br>
+          <strong>Werewolf</strong> &nbsp;
+          
           <!-- <span>Possibly {{teamSituation}}</span><br><br> -->
-          <span  style="margin-bottom:20px">Day {{detailData.length}}
+          <span v-if="this.detailData?.length ==1 && this.gameStatus == 'ready'"  style="margin-bottom:20px">Day 0
+          <img v-if="currentTime == 'day'"  src="../public/icons/sun.png">
+          <img v-if="currentTime == 'night'" style="filter: invert(100%);"  src="../public/icons/moon.png">
+          </span>
+          
+          <span v-else style="margin-bottom:20px">Day {{detailData.length}}
           <img v-if="currentTime == 'day'"  src="../public/icons/sun.png">
           <img v-if="currentTime == 'night'" style="filter: invert(100%);"  src="../public/icons/moon.png">
           </span>
@@ -17,20 +22,25 @@
         
         <div class="players row"  >
           <template  v-for="(player,index) in players" :key="index">
-            <div class="card"  :style="[!player.alive  ? 'opacity: 0.5 ' : '']" :class="[currentPlayer?.target == player.name ? 'targeted' : '']"  @click="clickingAPlayer(player)">
+            <div class="card"  :style="[!player.alive  ? 'opacity: 0.5 ' : '']" :class="[myPlayer?.target == player.name ? 'targeted' : '']"  @click="clickingAPlayer(player)">
               <img src="../public/icons/user.png" alt="Avatar">
               <div class="container">
-
                 <!-- name   -->
                 <span class="name" :style="myPlayer?.name == player.name ? 'color:blue': ''">{{player.name}}</span>
                 <hr>
-                <span v-if="myPlayer?.name == player.name" :style="getColor(player.team)">{{player.team}}</span><br>
-                <span v-if="myPlayer?.name == player.name">{{player.role}}</span><br>
+                
 
-                <!-- for the seer -->
-                <span v-if="currentPlayer?.seerList.includes(player.name)" style="color:red">{{player.role}} <br></span>
-                <!-- for the wolves to recognize each othere -->
-                <span v-if="currentPlayer?.teams == 'wolves'" style="color:red">{{player.role}} <br></span>
+                <!-- for the seer and wolves -->
+                <template v-if="canISeeYourRole(player)">
+                  <span  style="color:red">{{player.team}} <br> {{player.role}}</span>
+                </template>
+
+                <template v-else>
+                  
+                  <span v-if="myPlayer?.name == player.name" :style="getColor(player.team)">{{player.team}}</span><br>
+                  <span v-if="myPlayer?.name == player.name">{{player.role}}</span><br>
+                </template>
+
                 <!-- <span>{{player.doneWihtNightAction}}</span> -->
                 
               </div>
@@ -65,13 +75,21 @@
             <!-- buttons -->
               <!-- <button :style="[canMoveForward ? '' : 'opacity: 0.2']" @click="moveToNextState">Forward the Time</button>
                -->
+              
+              
 
-              <button :style="[waitingForOthers ? 'opacity: 0.2' : '']" @click="ready()">Ready</button>
 
               <template v-if="waitingForOthers">
-
-                <div class="loader"></div>
                 <span>Waiting for other players {{liveWaitingList.length}} / {{latestData.players.length}}</span>
+                <div class="loader"></div>
+              </template>
+
+
+              <template v-else>
+                <button v-if="myPlayer.done" @click="ready()">Ready</button>
+                <button v-if="!myPlayer.done " :style="[myPlayer.target ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #3CB371" >Confirm</button>
+
+                
               </template>
 
 
@@ -129,14 +147,27 @@
             </template>
           </div>
 
+          <hr>
+          <!-- notice --------------------------------------------- -->
+          <div>
+            <template v-if="currentTime == 'night'">
+              <span>{{rules[myPlayer?.role]?.todo}} </span> <br>
+              <span v-if="message" style="color:red">{{message}} <br></span>
+              <span style='color:red' v-if="detailData.length == 1 && !latestData.isNightOver && myPlayer.team == 'wolves' && gameStatus !== 'ready' && !liveWaitingList.includes(username)">You cannot kill anyone at first night</span>
 
+              
+
+            </template>
+
+          </div>
+          
+
+          <!-- developing and log --------------------------------------------- -->
           <div>
 
-            <hr>
-            
-            <!-- <button @click="moveToNextState()">Force</button><br> -->
+            <span style="color:red" v-if="latestLog">{{this.latestData.officialLog.slice(-1)[0]}}</span>
   
-            <span>{{this.currentPlayer?.seerList}}</span>
+            <!-- <span style="color:red">waiting list:{{latestData.isNightOver}}</span> -->
           </div>
 
         </div>
@@ -185,12 +216,20 @@
 
                 <div v-if="modalStatus == 3">
                   <form onsubmit="event.preventDefault()">
+                    <span>Welcone {{username}} !</span><br>
                     <span>Currently {{members.length}}/9</span><br>
                       <span>Room Code: <strong style="font-size:175%">{{roomCode}}</strong></span><br>
 
                       <button v-if="onlineRoll == 'host'" :style="[members.length >= 4 ? '' : 'opacity: 0.2']" @click="closeTheRoom" class="closeButton">Close the Room</button><br>
 
                       <div v-if="onlineStatus == 'waiting'" class="loader"></div>
+
+                     <button v-if="!members?.includes(username)"  @click="joinARoom" class="closeButton">Try again</button>
+
+                     <br>
+
+                     <!-- <samp>{{members}}</samp> -->
+
                       <template v-for="(player,index) in members" :key="index" style="text-align:left">
                         <span :style="username==player ? 'color:red' : ''">{{index+1}}. {{player}}</span><br>
 
@@ -256,7 +295,7 @@
 
     </transition>
     
-  </body>
+  </body> 
 </html>
   
 
@@ -332,6 +371,8 @@ export default {
       // waitingForOthers: false,
 
       turnCount: 0,
+      message: undefined,
+      devMessage: '',
 
 
     }
@@ -671,75 +712,75 @@ export default {
 
 
     // game controlling ----------------------------------------------------------
-    clickingAPlayer(target){
+    // clickingAPlayer(target){
       
-      // if(!this.choosingNow) return
-      if(!this.currentPlayer) return
-      if(this.currentTime == 'night' && this.currentPlayer.doneWihtNightAction) return
+    //   // if(!this.choosingNow) return
+    //   if(!this.currentPlayer) return
+    //   if(this.currentTime == 'night' && this.currentPlayer.doneWihtNightAction) return
 
-      this.actionWarning = undefined
-      // most likely cannot pick yourself right?
-      if(this.currentPlayer.name == target.name){
-        this.actionWarning = 'Cannot choose yourself'
-        this.currentPlayer.target = undefined
-        this.currentPlayer.doneWihtNightAction = false
-        this.currentPlayer.doneVoting = false
-        return
-      }
+    //   this.actionWarning = undefined
+    //   // most likely cannot pick yourself right?
+    //   if(this.currentPlayer.name == target.name){
+    //     this.actionWarning = 'Cannot choose yourself'
+    //     this.currentPlayer.target = undefined
+    //     this.currentPlayer.doneWihtNightAction = false
+    //     this.currentPlayer.doneVoting = false
+    //     return
+    //   }
 
-      if(this.currentTime == 'night'){
-        // if(this.currentPlayer.doneWihtNightAction) return
-        if(this.currentPlayer.team == 'wolves'){
-          if(target.team == 'wolves'){
-            this.actionWarning = 'Cannot choose the same team'
-            this.currentPlayer.target = undefined
-            this.currentPlayer.doneWihtNightAction = false
-            return 
-          }
-          if(!target.alive){
+    //   if(this.currentTime == 'night'){
+    //     // if(this.currentPlayer.doneWihtNightAction) return
+    //     if(this.currentPlayer.team == 'wolves'){
+    //       if(target.team == 'wolves'){
+    //         this.actionWarning = 'Cannot choose the same team'
+    //         this.currentPlayer.target = undefined
+    //         this.currentPlayer.doneWihtNightAction = false
+    //         return 
+    //       }
+    //       if(!target.alive){
             
-            this.actionWarning = 'Cannot choose the dead'
-            this.currentPlayer.target = undefined
-            this.currentPlayer.doneWihtNightAction = false
-            return 
-          } 
-          this.currentPlayer.target = target.name
-          console.log(target.name)
-          this.currentPlayer.doneWihtNightAction = true
-          return
-        }
+    //         this.actionWarning = 'Cannot choose the dead'
+    //         this.currentPlayer.target = undefined
+    //         this.currentPlayer.doneWihtNightAction = false
+    //         return 
+    //       } 
+    //       this.currentPlayer.target = target.name
+    //       console.log(target.name)
+    //       this.currentPlayer.doneWihtNightAction = true
+    //       return
+    //     }
 
-        if(this.currentPlayer.team == 'villagers'){
-          if(this.currentPlayer.doneWihtNightAction) return
+    //     if(this.currentPlayer.team == 'villagers'){
+    //       if(this.currentPlayer.doneWihtNightAction) return
 
-          if(!target.alive){
-            this.actionWarning = 'Cannot choose the dead'
-            this.currentPlayer.target = undefined
-            this.currentPlayer.doneWihtNightAction = false
-            return 
-          } 
-          this.currentPlayer.target = target.name
-          // this.currentPlayer.doneWihtNightAction = true
-          return
-        }
+    //       if(!target.alive){
+    //         this.actionWarning = 'Cannot choose the dead'
+    //         this.currentPlayer.target = undefined
+    //         this.currentPlayer.doneWihtNightAction = false
+    //         return 
+    //       } 
+    //       this.currentPlayer.target = target.name
+    //       // this.currentPlayer.doneWihtNightAction = true
+    //       return
+    //     }
 
         
 
-      }
+    //   }
 
-      if(this.currentTime == 'day'){
-        if(!target.alive){
-          this.actionWarning = 'Cannot choose the dead'
-          this.currentPlayer.target = undefined
-          this.currentPlayer.doneVoting = false
-          return 
-        } 
-        this.currentPlayer.target = target.name
-        this.currentPlayer.doneVoting = true
-        return
+    //   if(this.currentTime == 'day'){
+    //     if(!target.alive){
+    //       this.actionWarning = 'Cannot choose the dead'
+    //       this.currentPlayer.target = undefined
+    //       this.currentPlayer.doneVoting = false
+    //       return 
+    //     } 
+    //     this.currentPlayer.target = target.name
+    //     this.currentPlayer.doneVoting = true
+    //     return
 
-      }
-    },
+    //   }
+    // },
     skipVoting(){
       this.actionWarning = undefined
 
@@ -1156,7 +1197,6 @@ export default {
       this.latestData.officialLog = []
       this.showingLog = false
     },
-
     clearVote(){
       for(let i in this.players){
         let player = this.players[i]
@@ -1165,14 +1205,12 @@ export default {
 
       }
     },
-
     clearCount(){
       for(let i in this.players){
         let player = this.players[i]
         player.targetedBy = 0
       }
     },
-
     action(){
       let player = this.currentPlayer 
       if(!player.target) return false
@@ -1187,8 +1225,6 @@ export default {
       console.log(`${target.name} is: ${target.role}`)
     },
 
-
-
     // styles ------------------------------------------------
     getColor(team){
       switch(team){
@@ -1199,7 +1235,6 @@ export default {
           return 'color:green'
       }
     },
-
     // controlling the game easily----------------------------------------
     defaultCreation(){
       if(this.readyToPlay) return
@@ -1211,7 +1246,6 @@ export default {
       this.createARoom()
       this.doneWithNames()
     },
-
     test(){
       
       if(!this.skipTheFirstStep) return
@@ -1223,7 +1257,7 @@ export default {
 
 
 
-    // setingup online ---------------------------------------
+    // setingup online -----------------
     signUp(){
       if(this.username == ''){
         this.modalWarning = 'Name cannot be empty'
@@ -1240,7 +1274,6 @@ export default {
     generateRandomUsername(){
       this.username =randomWords();
     },
-
     createARoom(){
       this.warning = undefined
       let result = this.generateRoomCode()
@@ -1294,7 +1327,6 @@ export default {
 
 
     },
-
     joinARoom(){
       console.log('trying to join ' + this.roomCode )
 
@@ -1367,12 +1399,9 @@ export default {
       this.onlineRoll = 'guest'
 
     },
-
     closeTheRoom(){
       if(this.members.length <4) return
 
-
-      
       // assigining roles as host
       this.multiAssignRoles()
 
@@ -1389,8 +1418,8 @@ export default {
         // members: JSON.stringify([this.username]),
 
       })
-    },
 
+    },
     generateRoomCode(){
       var randomChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
 			var result = '';
@@ -1408,42 +1437,50 @@ export default {
 			}
       return result
     },
-
+    // important------------------------------------------
     ReciveTheData(){
       
-
       db.collection("werewolf").doc(`${this.roomCode}`)
       .onSnapshot((doc) => {
         
-
         if(this.onlineStatus == 'waiting'){
           // console.log('new data incoming ------------')
           // console.log(doc.data().members)
           this.members = JSON.parse( doc.data()?.members)
+
+          if(!this.members.includes(this.username)){
+            this.joinARoom()
+            return 
+          }
           if(doc.data().gameStatus == 'ready'){
             console.log('ready to go')
             this.gameStatus = 'ready'
             this.onlineStatus = 'ready'
             this.modalStatus++
+            // this.ready()
 
             this.detailData = JSON.parse(doc.data().detailData)
             this.players = this.latestData.players
             this.waitingList = this.latestData.waitingList
+            
+
+            if(this.skipTheFirstStep){
+              this.showModal = false; 
+              
+              this.readyToPlay = true
+            }
             
           }
           
 
         }else if(this.onlineStatus == 'ready'){
           console.log('new data incoming ------------')
-         
           this.detailData= JSON.parse(doc.data().detailData)
           this.players = this.latestData.players
-
           this.gameStatus = this.latestData.gameStatus
-          
           if(this.onlineRoll == 'host'){
-            // very first time
             if(this.liveWaitingList.length == this.players.length){
+              // very first time
               if(this.turnCount == 0){
                 console.log('advancing to the first night')
                 this.turnCount++
@@ -1457,16 +1494,34 @@ export default {
 
                 const ref = db.collection('werewolf')
                 ref.doc(`${this.roomCode}`).update({
-                  // gameStatus: 'playing',
                   detailData: JSON.stringify(this.detailData)
                 })
+
               }else if(this.turnCount == 1){
-                console.log('advancing to the first day')
+                
+                console.log(this.devMessage)
+
                 this.turnCount++
+                this.devMessage ='advancing to the first day'
+
+                // death judge, no one can die at the first 
+                this.latestData.officialLog.push('Last night: no body died')
+
+                // winner judge, no one can win at this point
+
+                // change the day, and show them 
+                this.latestData.isNightOver = true
 
 
-                // toggle for voting
-                this.toggleWaitingList() 
+                // toggle for voting, madakana?
+                this.latestData.waitingList = [] 
+
+                // and send the data now
+                this.updatingData()
+
+                return
+
+                
                 
               }
 
@@ -1487,7 +1542,7 @@ export default {
     multiAssignRoles(){
       let count = 0
       while(count < this.members.length){
-        this.players.push({name: this.members[count], alive: true,role: undefined,team: undefined,target: undefined, dayVotingTarget: undefined, doneVoting: true,targetedBy: 0, seerList: [], doneWihtNightAction: true})
+        this.players.push({name: this.members[count], alive: true,role: undefined,team: undefined,target: undefined,targetedBy: 0, dayVotingTarget: undefined, doneVoting: true, seerList: [], doneWihtNightAction: true,done: true})
         count++
       }
 
@@ -1499,12 +1554,36 @@ export default {
       
     },
 
+
+    // actual multi game----
+
     ready(){
       if(this.waitingForOthers) return
 
       if(this.latestData.waitingList.includes(this.username)) return 
 
       this.latestData.waitingList.push(this.username)
+      
+      if(this.myPlayer.role == 'seer') this.myPlayer.target = undefined
+      this.message = undefined
+
+
+      const ref = db.collection('werewolf')
+      ref.doc(`${this.roomCode}`).update({
+        detailData: JSON.stringify( this.detailData)
+        // members: JSON.stringify([this.username]),
+
+      })
+
+      console.log('adding my data')
+    },
+
+    updatingData(){
+      if(this.waitingForOthers) return
+
+      // if(this.latestData.waitingList.includes(this.username)) return 
+
+      // this.latestData.waitingList.push(this.username)
 
 
       const ref = db.collection('werewolf')
@@ -1519,20 +1598,150 @@ export default {
 
     toggleWaitingList(){
       // first time when it changed
-      let list = []
+
+      // everybody has to click yes
+      this.latestData.waitingList = []
+
       if(this.detailData?.length ==1 && this.gameStatus == 'ready'){
         console.log('first time toggling ')
         for(let i in this.players){
           let player = this.players[i]
-          if(player.role !== 'seer'){
+          // everybody has to click yes, unless skip function
+          if(this.skipTheFirstStep){
+            if(player.role !== 'seer'){
+            // pl
+              this.latestData.waitingList.push(player.name)
             
-            list.push(player.name)
+            }
+          }  
+
+          if(player.role == 'seer'){
+            // player
+            player.done = false
           }
         }
 
-        this.latestData.waitingList = list
+        return
+
+        
 
         // update: detailData with waiting list
+      }
+
+      // for voting
+      if(this.latestData?.isNightOver && !this.latestData?.isDayOver){
+        console.log('toggle for voting')
+        for(let i in this.players){
+          let player=  this.players[i]
+          player.done = false
+        }
+        return
+      }
+
+      
+    },
+
+    canISeeYourRole(target){
+      let flag = false
+
+      if(target.name == this.myPlayer.name) return false
+
+      if(this.myPlayer.team == 'wolves'){
+        if(target.team == 'wolves') return true
+      }
+
+      if(this.myPlayer.role == 'seer'){
+        if(this.myPlayer.seerList?.includes(target.name)) return true
+      }
+
+      return flag
+
+    },
+
+    clickingAPlayer(target){
+      
+      // if(!this.choosingNow) return
+      if(this.myPlayer?.done) return
+
+      this.actionWarning = undefined
+
+      // most likely cannot pick yourself right?
+      if(this.myPlayer.name == target.name){
+        this.message = 'Cannot choose yourself'
+        this.myPlayer.target = undefined
+        this.myPlayer.done = false
+        return
+      }
+
+
+
+      if(this.myPlayer.team == 'wolves'){
+        if(target.team == 'wolves'){
+          this.message = 'Cannot choose the same team'
+          this.myPlayer.target = undefined
+          this.myPlayer.done = false
+          return 
+        }
+
+        if(!target.alive){
+          this.actionWarning = 'Cannot choose the dead'
+          this.myPlayer.target = undefined
+          this.myPlayer.done = false
+          return 
+        } 
+
+        this.myPlayer.target = target.name
+        console.log(target.name)
+        this.myPlayer.done = true
+        return
+      }
+
+      if(this.myPlayer.role == 'seer'){
+
+        if(!target.alive){
+          this.message = 'Cannot choose the dead'
+          this.myPlayer.target = undefined
+          this.myPlayer.doneWihtNightAction = false
+          return 
+        }
+        this.message = `You are chosing "${target.name}" `
+        this.myPlayer.target = target.name
+        
+        // this.myPlayer.seerList.push(target.name)
+        // this.myPlayer.done = true
+
+        // this.updatingData()
+
+        
+
+        // this.myPlayer.target = target.name
+        // this.currentPlayer.doneWihtNightAction = true
+        return
+      }
+
+        
+
+      // if(this.currentTime == 'day'){
+      //   if(!target.alive){
+      //     this.actionWarning = 'Cannot choose the dead'
+      //     this.currentPlayer.target = undefined
+      //     this.currentPlayer.doneVoting = false
+      //     return 
+      //   } 
+      //   this.currentPlayer.target = target.name
+      //   this.currentPlayer.doneVoting = true
+      //   return
+
+      // }
+    },
+
+    confirm(){
+      if(this.myPlayer.role == 'seer'){
+        let target = this.players.find(o => o.name === this.myPlayer.target)
+        this.message = `"${target.name}" is ${target.role}`
+        this.myPlayer.seerList.push(target.name)
+        this.myPlayer.done = true
+        this.updatingData()
       }
     },
 
@@ -1760,7 +1969,7 @@ export default {
       }
       return list
     },
-
+    // -------------------------------------------------------------
     currentTime(){
       if(this.detailData ==0){
         return 'day'
@@ -1785,6 +1994,10 @@ export default {
     latestData(){
       return this.detailData.slice(-1)[0]
     },
+    // latestLog(){
+    //   return this.latestData.officialLog?.slice(-1)[0]
+    // },
+
     liveWaitingList(){
       return this.latestData?.waitingList
     },
@@ -2220,7 +2433,7 @@ input[type=number], select {
 }
 
 .targeted{
-  background-color: #3CB371
+  background-color: #3CB371;
 }
 
 
@@ -2309,6 +2522,8 @@ input[type=number], select {
   width: 120px;
   background-color:		#DC143C;
 }
+
+
 
 
 
