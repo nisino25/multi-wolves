@@ -2,7 +2,7 @@
 <html >
   <head></head>
   <body :style="currentTime == 'day' ? 'background-color: #E0B589;' : 'background-color: #363945; color: white'" >
-      <div class="wrapper">
+      <div class="wrapper" style="">
 
       <div class="container" v-if="readyToPlay">
 
@@ -122,7 +122,7 @@
           <!-- developing and log --------------------------------------------- -->
           <div>
 
-            <!-- <span style="color:red" >{{liveWaitingList}}</span> -->
+            <!-- <span style="color:red" >{{liveChatList}}</span> -->
 
             <!-- <hr> -->
           </div>
@@ -305,81 +305,46 @@
     </transition>
 
     <!-- message modal -->
-    <transition name="fade" >
-          <div class='modal-overlay fade-in' v-if="readyToPlay && myPlayer.alive && myPlayer.team == 'wolves' && showingChat" style="height: 100vh">
-              <div class="modal" style=" transition : all 0.6s ease 0s; color:black"> 
-                <div >
-                  <form onsubmit="event.preventDefault()">
 
-                     <section >
-                      <div v-for="message in messages" :key="message.key" 
-                      :class="(username == message.username ? 'message current-user' : 'message')" style="overflow:auto">
-                        <div class="message-inner">
-                          <div class="username">{{ message.username }}</div>
-                          <div class="content">{{ message.content }}</div>
-                          <!-- <br><br><br> -->
+    <transition name="fade" >
+          <div class='modal-overlay fade-in' v-if="readyToPlay && showingChat" style="height: 100vh">
+              <div class="modal" style=" transition : all 0.6s ease 0s; color:black;overflow: hidden; height: 75vh; width: 90vw "> 
+                <section class="msger" id="msger">
+                  <header class="msger-header">
+                    <div class="msger-header-title">
+                      <i class="fas fa-comment-alt"></i> Team Wolces Chat
+                    </div>
+                  </header>
+
+                  <main class="msger-chat" id="msger-chat">
+                    <template v-for="message in liveChatList" :key="message.key">
+                      <div :class="message.username !== username ? 'msg left-msg' : 'msg right-msg'">
+
+                        <div class="msg-bubble">
+                          <div class="msg-info">
+                            <div class="msg-info-name" style="opacity:0.6; font-size:80% ">{{message.username}}</div>
+                            <!-- <div class="msg-info-time">{{message.timestamp.toLocaleTimeString()}}</div> -->
+                          </div>
+
+                          <div class="msg-text" style="float:left; font-weight: bold;" >
+                            {{message.content}}
+                          </div>
                         </div>
                       </div>
-                    </section>
-                     <div>
-                    <!-- <input type="text"  v-model="uncheckedWord" @keyup.enter="pCheck()"> -->
 
-                    <div class="vue-template" >
-
-                      <div>
-                        <section>
-
-                            <div v-for="message in messages" :key="message.key">
-                              <div>
-                                <article class="msg-container" id="msg-0" :class="(username == message.username ? 'msg-self' : 'msg-remote')" >
-                                  <div class="msg-box">
-                                    <img class="user-img" id="user-0" :src="message.avatar" />
-                                    <div class="flr">
-                                      <div class="messages" v-if="message.content !== 'giveup'">
-                                        <p class="msg" id="msg-0">{{message.content}} </p>
-                                      </div>
-                                      <div v-else>
-                                        <p class="msg" id="msg-0">{{message.username}} has given up!</p>
-                                        <p class="msg" id="msg-0">The game is over</p>
-                                      </div>
-                                      <span class="timestamp"><span class="username">{{message.username}}</span></span>
-                                    </div>
-                                  </div>
-                                </article>
-                              </div>
-                            </div>
-                          </section>
-                      </div>
-                      <hr style="height: 1px;
-                  background-color: #ccc;
-                  border: none;">
-                      <div>
-
-                        <form class="chat-input" onsubmit="return false;" @submit.prevent="newProcessGame()" style="margin-bottom:30px" v-if="this.username !== this.lastPlayedBy">
-                          <input type="text" autocomplete="on" :placeholder="placeholderText" v-model="uncheckedWord">
-                          <button>
-                                        <svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="rgba(0,0,0,.38)" d="M17,12L12,17V14H8V10H12V7L17,12M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L5,8.09V15.91L12,19.85L19,15.91V8.09L12,4.15Z" /></svg>
-                                    </button>
-                        </form>
-                        <h5 v-else>Waiting for the other players's reply... <hr style="height: 1px;
-                  background-color: #ccc;
-                  border: none;"></h5>
-                        
-                        
-                      </div>
-                    </div>
-
-
-
+                    </template>
+                  </main>
 
                     
-                  </div>
 
-
-
-                      
+                  <form class="msger-inputarea" @submit.prevent="sendMessage()">
+                    <input type="text" class="msger-input" placeholder="Enter your message..." v-model="currentMessage">
+                    <button type="submit" class="msger-send-btn">Send</button>
                   </form>
-                </div>
+                </section>
+
+
+                <button @click="showingChat = false" class="close-button">Close the chat</button>
 
                 
 
@@ -393,9 +358,6 @@
     
   </body> 
 </html>
-  
-
-
 </template>
 
 <script>
@@ -453,7 +415,7 @@ export default {
       generalCounter: undefined,
 
       // -----------------------------------
-      skipTheFirstStep: true,
+      skipTheFirstStep: false,
       skipFlag: true,
       username: undefined,
       onlineRoll: undefined,
@@ -471,6 +433,9 @@ export default {
       officialLog: '',
       
       showingChat: false,
+      chatList: {},
+      currentMessage: '',
+
 
 
     }
@@ -1235,13 +1200,9 @@ export default {
       const ref = db.collection('werewolf')
       ref.doc(`${this.roomCode}`).update({
         gameStatus: 'ready',
-        // "players: JSON.stringify(this.players),
         players: this.players,
-        // waitingList: JSON.stringify([]),
         detailData: JSON.stringify( this.detailData),
         officialLog: '',
-        // members: JSON.stringify([this.username]),
-
       })
 
     },
@@ -1268,8 +1229,10 @@ export default {
       // initalizing the obj
       let count = 0
       this.players = {}
+      this.chatList = {}
       while(count < this.members.length){
-        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true,}
+        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true, chatList: [],}
+        this.chatList[this.members[count]] = []
         count++
       }
 
@@ -1421,16 +1384,12 @@ export default {
 
         }else if(this.onlineStatus == 'ready'){
           // this is where everybody gets the info---------------------
+          // console.log('new data')
           this.detailData= JSON.parse(doc.data().detailData)
           this.gameStatus = this.latestData.gameStatus
-          // console.log(`this winner is ${this.winner}`)
           this.winner =  doc.data().winner
-
           this.officialLog = doc.data().officialLog
-
-          // console.log(doc.data().players) 
-          // console.log(`-----------------`)
-          // console.log(doc.data())
+ 
           this.players = doc.data().players
 
           if(this.onlineRoll == 'host'){
@@ -1562,8 +1521,7 @@ export default {
       )
     },
 
-    
-
+  
     // actual multi game ------------
 
     ready(){
@@ -1576,6 +1534,8 @@ export default {
       
       if(this.myPlayer.role == 'seer') this.myPlayer.target = ''
       this.message = undefined
+
+      // this.myPlayer.chatList.push({timestamp: Date.now(), username: this.username, content: 'sup' })
 
       this.updatingData()
 
@@ -1654,10 +1614,17 @@ export default {
             player.waiting = true
           }  
 
-          if(player.role == 'seer' || player.team == 'wolves'){
+          if(player.team == 'wolves'){
             // player
             // player.ready = false
             // player.done = false
+            player.waiting = false
+          }
+
+          if(player.role == 'seer'){
+            // player
+            player.ready = false
+            player.done = false
             player.waiting = false
           }
         }
@@ -1761,19 +1728,6 @@ export default {
 
       return true
 
-      // if(this.winner){
-      //   return true
-      // }
-
-      // if(this.myPlayer.team == 'wolves'){
-      //   if(target.team == 'wolves') return true
-      // }
-
-      // if(this.myPlayer.role == 'seer'){
-      //   if(this.myPlayer.seerList?.includes(target.name)) return true
-      // }
-
-      // return flag
 
     },
 
@@ -2092,6 +2046,16 @@ export default {
       return false
     },
 
+
+
+    // chat -------  
+    sendMessage(){
+      this.myPlayer.chatList.push({timestamp: Date.now(), username: this.username, content: this.currentMessage })
+      this.updatingData()
+      this.currentMessage = ''
+      
+    },
+
     
     
 
@@ -2129,23 +2093,16 @@ export default {
       localStorage.username = this.username
     },
 
-    // liveWaitingList(){
-    //   if(this.liveWaitingList?.includes(this.username)){
-    //     return this.waitingForOthers = true
-    //   }else{
-    //     return this.waitingForOthers = false
-    //   }
+    liveChatList(){
+      // console.log(chatBox)
+      if(!this.showingChat) return
+      var chatBox = document.getElementById('msger-chat');
+      chatBox.scrollTop = 1000
 
-    // },
-    // waitingList(){
-    //   if(this.waitingList?.length <this.members.length){
-    //     this.waitingForOthers = false
-    //   }else{
-    //     this.waitingForOthers = true
-    //   }
-      
-    //   // console.log(this.waitingList)
-    // },
+      // window.setInterval(function() {
+        
+      // }, 5000);
+    },
 
     // ------------------------------
     roomCode(){
@@ -2157,7 +2114,8 @@ export default {
 
     winner(){
       console.log(`this winner is ${this.winner}`)
-    }
+    },
+
 
   },
   computed:{
@@ -2351,6 +2309,22 @@ export default {
         let player = this.players[i]
         if(player.waiting || !player.alive) list.push(player.name)
       }
+      return list
+    },
+
+    liveChatList(){
+      let list =[]
+      for(let i in this.players){
+        let player = this.players[i]
+        for(let c in player.chatList){
+          list.push(player.chatList[c])
+        }
+        
+      }
+      list = list.sort(function(x, y){
+        return x.timestamp - y.timestamp;
+      })
+
       return list
     },
 
@@ -2959,48 +2933,158 @@ input[type=number], select {
   }
 }
 
-.chat-input {
-    flex: 0 0 auto;
-    height: 60px;
-    background: #40434e;
-    border-top: 1px solid #2671ff;
-    box-shadow: 0 0 4px rgba(0,0,0,.14),0 4px 8px rgba(0,0,0,.28);
-    /* width: 100%; */
+
+:root {
+  --body-bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  --msger-bg: #fff;
+  --border: 2px solid #ddd;
+  --left-msg-bg: #ececec;
+  --right-msg-bg: #579ffb;
 }
-.chat-input input {
-    height: 59px;
-    line-height: 60px;
-    outline: 0 none;
-    border: none;
-    width: calc(100% - 60px);
-    color: white;
-    text-indent: 10px;
-    font-size: 12pt;
-    padding: 0;
-    background: #40434e;
+
+html {
+  box-sizing: border-box;
 }
-.chat-input button {
-    float: right;
-    outline: 0 none;
-    border: none;
-    background: rgba(255,255,255,.25);
-    height: 40px;
-    width: 40px;
-    border-radius: 50%;
-    padding: 2px 0 0 0;
-    margin: 10px;
-    transition: all 0.15s ease-in-out;
+
+*,
+*:before,
+*:after {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
 }
-.msg-box {
-    display: flex;
-    background: #5b5e6c;
-    padding: 10px 10px 0 10px;
-    border-radius: 0 6px 6px 0;
-    max-width: 80%;
-    width: auto;
-    float: left;
-    box-shadow: 0 0 2px rgba(0,0,0,.12),0 2px 4px rgba(0,0,0,.24);
+
+
+
+.msger {
+  display: flex;
+  flex-flow: column wrap;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 867px;
+  margin: 0 auto;
+  height: calc(100% - 50px);
+  border: var(--border);
+  border-radius: 5px;
+  background: var(--msger-bg);
+  box-shadow: 0 15px 15px -5px rgba(0, 0, 0, 0.2);
 }
+
+.msger-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: var(--border);
+  background: #eee;
+  color: #666;
+}
+
+.msger-chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+.msger-chat::-webkit-scrollbar {
+  width: 6px;
+}
+.msger-chat::-webkit-scrollbar-track {
+  /* background: #ddd; */
+}
+.msger-chat::-webkit-scrollbar-thumb {
+  /* background: #bdbdbd; */
+}
+.msg {
+  display: flex;
+  align-items: flex-end;
+}
+.msg:last-of-type {
+  margin: 0;
+}
+.msg-bubble {
+  max-width: 450px;
+  padding: 10px;
+  border-radius: 15px;
+  background: var(--left-msg-bg);
+  margin-bottom: 5px;
+}
+.msg-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.msg-info-name {
+  margin-right: 10px;
+  font-weight: bold;
+}
+.msg-info-time {
+  font-size: 0.85em;
+}
+
+.left-msg .msg-bubble {
+  border-bottom-left-radius: 0;
+}
+
+.right-msg {
+  flex-direction: row-reverse;
+}
+.right-msg .msg-bubble {
+  background: var(--right-msg-bg);
+  color: #fff;
+  border-bottom-right-radius: 0;
+}
+.right-msg .msg-img {
+  margin: 0 0 0 10px;
+}
+
+.msger-inputarea {
+  display: flex;
+  padding: 10px;
+  border-top: var(--border);
+  background: #eee;
+}
+.msger-inputarea * {
+  padding: 10px;
+  border: none;
+  border-radius: 3px;
+  font-size: 1em;
+}
+.msger-input {
+  flex: 1;
+  background: #ddd;
+}
+.msger-send-btn {
+  margin-left: 10px;
+  background: rgb(0, 196, 65);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.23s;
+}
+.msger-send-btn:hover {
+  background: rgb(0, 180, 50);
+}
+
+.msger-chat {
+  /* background-color: #fcfcfe; */
+  
+}
+
+.close-button {
+
+  width: 200px;
+  background-color:	#DC143C;
+  width: 120px;
+  color: white;
+  padding: 10px 8px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  margin-top: 15px;
+}
+
 
 
 
