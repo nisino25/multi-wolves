@@ -166,7 +166,7 @@
                     <button @click="createARoom()" class="create" >Create a Room</button>
                     OR<br>
                     <label>Room Code</label>
-                    <input type="text" placeholder="Type room cocde.." v-model="roomCode" >
+                    <input type="text" placeholder="Type room cocde.." v-model="roomCode"  autocapitalize="none" >
                     <button @click="joinARoom()" class="join">Join a Room</button>
 
                   </form>
@@ -1685,9 +1685,11 @@ export default {
           return 
         }
 
+        this.message = `You are chosing "${target.name}" `
+
         this.myPlayer.target = target.name
         console.log(target.name)
-        this.myPlayer.done = true
+        // this.myPlayer.done = true
         return
       }
 
@@ -1713,21 +1715,6 @@ export default {
         // this.currentPlayer.doneWihtNightAction = true
         return
       }
-
-        
-
-      // if(this.currentTime == 'day'){
-      //   if(!target.alive){
-      //     this.actionWarning = 'Cannot choose the dead'
-      //     this.currentPlayer.target = undefined
-      //     this.currentPlayer.doneVoting = false
-      //     return 
-      //   } 
-      //   this.currentPlayer.target = target.name
-      //   this.currentPlayer.doneVoting = true
-      //   return
-
-      // }
     },
 
     confirm(){
@@ -1745,6 +1732,14 @@ export default {
         let target = this.players[this.myPlayer.target]
         this.message = `"${target.name}" is ${target.role}`
         this.myPlayer.seerList.push(target.name)
+        this.myPlayer.done = true
+        this.updatingData()
+        return
+      }
+
+      if(this.myPlayer.role == 'werewolf'){
+        let target = this.players[this.myPlayer.target]
+        this.message = `"${target.name}" is your target`
         this.myPlayer.done = true
         this.updatingData()
         return
