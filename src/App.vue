@@ -416,6 +416,7 @@ export default {
 
       // -----------------------------------
       skipTheFirstStep: false,
+      // skipTheFirstStep: true,
       skipFlag: true,
       username: undefined,
       onlineRoll: undefined,
@@ -442,27 +443,6 @@ export default {
   },
   methods:{
 
-    // setup ------------------------------
-    // createARoom(){
-
-    //   // check if the number is correct
-    //   if(this.groupSize >= 10 || this.groupSize < 3) {
-    //     this.modalWarning = 'Cannot have the number '
-    //     return 
-    //   }
-      
-
-    //   let count =0
-    //   while(count < this.groupSize){
-    //     this.players.push({name: `player${count+1}`, alive: true,role: undefined,team: undefined,target: undefined, dayVotingTarget: undefined, doneVoting: true,targetedBy: 0, seerList: [], doneWihtNightAction: true})
-    //     count++
-    //   }
-      
-      
-    //   this.modalStatus++
-    //   // console.log(this.players)
-
-    // },
     doneWithNames(){
       
       for(let i in this.players){
@@ -698,76 +678,7 @@ export default {
 
 
 
-    // game controlling ----------------------------------------------------------
-    // clickingAPlayer(target){
-      
-    //   // if(!this.choosingNow) return
-    //   if(!this.currentPlayer) return
-    //   if(this.currentTime == 'night' && this.currentPlayer.doneWihtNightAction) return
-
-    //   this.actionWarning = undefined
-    //   // most likely cannot pick yourself right?
-    //   if(this.currentPlayer.name == target.name){
-    //     this.actionWarning = 'Cannot choose yourself'
-    //     this.currentPlayer.target = undefined
-    //     this.currentPlayer.doneWihtNightAction = false
-    //     this.currentPlayer.doneVoting = false
-    //     return
-    //   }
-
-    //   if(this.currentTime == 'night'){
-    //     // if(this.currentPlayer.doneWihtNightAction) return
-    //     if(this.currentPlayer.team == 'wolves'){
-    //       if(target.team == 'wolves'){
-    //         this.actionWarning = 'Cannot choose the same team'
-    //         this.currentPlayer.target = undefined
-    //         this.currentPlayer.doneWihtNightAction = false
-    //         return 
-    //       }
-    //       if(!target.alive){
-            
-    //         this.actionWarning = 'Cannot choose the dead'
-    //         this.currentPlayer.target = undefined
-    //         this.currentPlayer.doneWihtNightAction = false
-    //         return 
-    //       } 
-    //       this.currentPlayer.target = target.name
-    //       console.log(target.name)
-    //       this.currentPlayer.doneWihtNightAction = true
-    //       return
-    //     }
-
-    //     if(this.currentPlayer.team == 'villagers'){
-    //       if(this.currentPlayer.doneWihtNightAction) return
-
-    //       if(!target.alive){
-    //         this.actionWarning = 'Cannot choose the dead'
-    //         this.currentPlayer.target = undefined
-    //         this.currentPlayer.doneWihtNightAction = false
-    //         return 
-    //       } 
-    //       this.currentPlayer.target = target.name
-    //       // this.currentPlayer.doneWihtNightAction = true
-    //       return
-    //     }
-
-        
-
-    //   }
-
-    //   if(this.currentTime == 'day'){
-    //     if(!target.alive){
-    //       this.actionWarning = 'Cannot choose the dead'
-    //       this.currentPlayer.target = undefined
-    //       this.currentPlayer.doneVoting = false
-    //       return 
-    //     } 
-    //     this.currentPlayer.target = target.name
-    //     this.currentPlayer.doneVoting = true
-    //     return
-
-    //   }
-    // },
+    
     skipVoting(){
       this.actionWarning = undefined
 
@@ -1682,11 +1593,15 @@ export default {
           player.waiting = false
           // player.waiting = false
 
-          if(this.skipTheFirstStep){
-            if(player.role == 'villager' || player.role == 'fool')
-            player.waiting = true
-            player.ready = false
-            player.done = false
+          if(player.role == 'villager' || player.role == 'fool'){
+            player.waiting = false
+            player.ready = true
+            player.done = true
+
+            if(this.skipTheFirstStep){
+              player.waiting = true
+            }
+            
           } 
 
         }
@@ -1720,8 +1635,12 @@ export default {
     },
 
     canIOpenChat(){
+      if(this.currentTime == 'day') return false
+      if(this.aliveWolvesCount <= 1) return false
 
       if(this.myPlayer.team !== 'wolves'){
+        
+        // if onlye one survivoe then false retu
 
         return false
       }
@@ -2326,6 +2245,17 @@ export default {
       })
 
       return list
+    },
+
+    aliveWolvesCount(){
+      let count =0
+      for(let i in this.players){
+        let player = this.players[i]
+        if(player.team == 'wolves' && player.alive) count++
+        
+      }
+
+      return count
     },
 
     
