@@ -3,10 +3,11 @@
   <head></head>
   <body :style="currentTime == 'day' ? 'background-color: #E0B589;' : 'background-color: #363945; color: white'" >
       <div class="wrapper">
+
       <div class="container" v-if="readyToPlay">
 
         <div class="nav" style="margin-bottom: 10px;">
-          <strong>Werewolf</strong> &nbsp;
+          <strong>Werewolf: [{{roomCode}}]</strong> &nbsp;
           
           <!-- <span>Possibly {{teamSituation}}</span><br><br> -->
           <span v-if="this.detailData?.length ==1 && this.gameStatus == 'ready'"  style="margin-bottom:20px">Day 0
@@ -20,10 +21,13 @@
           </span>
         </div>
         
-        <div class="players row"  >
-          <template  v-for="(player,index) in players" :key="index">
+        <div class="players row">
+          <template  v-for="(player,index) in sortedObj" :key="index">
             <div class="card"  :style="[!player.alive  ? 'opacity: 0.5 ' : '']" :class="[myPlayer?.target == player.name ? 'targeted' : '']"  @click="clickingAPlayer(player)">
-              <img src="../public/icons/user.png" alt="Avatar">
+
+              <img v-if="player.alive" src="../public/icons/user.png" alt="Avatar">
+              <i v-if="!player.alive" class='fas fa-skull-crossbones' style='font-size:35px;color:red; margin-top: 5px'></i>
+
               <div class="container">
                 <!-- name   -->
                 <span class="name" :style="myPlayer?.name == player.name ? 'color:blue': ''">{{player.name}}</span>
@@ -49,110 +53,63 @@
             
             </div>  
           </template>
+
  
         </div>
 
         <div class="controller" v-if="!winner">
 
-          <!-- show log -->
-          <template v-if="showingLog">
-            <button style="margin-left: 15px;" class="clearButton" @click="deleteLog(); choosingNow = true">Clear Log</button>
+            <template v-if="myPlayer.alive">
 
-            <hr>
-            <span v-if="!latestData.isDayOver">This is what happened last night <br><br></span>
-            <span v-if="latestData.isDayOver">This is what happened at Voting <br><br></span>
-
-            <template v-for="(item,index) in latestData.officialLog" :key="index">
-              <span>{{item}}</span>
-              <br>
-            </template>
-            <span v-if="latestData.officialLog.length ==0">Nothing happened last night</span>
-          </template>
-
-          <!-- when not showing log -->
-          <template v-if="!showingLog">
-            <!-- day time -->
-            <!-- buttons -->
-              <!-- <button :style="[canMoveForward ? '' : 'opacity: 0.2']" @click="moveToNextState">Forward the Time</button>
-               -->
-              
-              
-
-
-              <template v-if="waitingForOthers">
-                <span>Waiting for other players {{liveWaitingList.length}} / {{latestData.players.length}}</span>
+              <template v-if="myPlayer.waiting">
+                <span>Waiting for other players {{liveWaitingList.length}} / {{members.length}}</span>
                 <div class="loader"></div>
               </template>
 
 
               <template v-else>
-                <button v-if="myPlayer.done" @click="ready()">Ready</button>
-                <button v-if="!myPlayer.done " :style="[myPlayer.target ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #3CB371" >Confirm</button>
+
+                <button v-if="myPlayer.done" @click="ready()" class="blink" style="width: 80px">Ready</button>
+
+                <button v-if="canIOpenChat()" @click="showingChat = true" class="purple-blink" style="width: 100px; margin-left: 20px;">Open Chat</button>
+
+                <button v-if="!myPlayer.done " :style="[myPlayer.target ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
+
+                <button v-if="!myPlayer.done && latestData.isNightOver && !latestData.isDayOver" :style="[myPlayer.target ? '' : '']" @click="myPlayer.target = 'skipping'" style="background-color: #8A2BE2; margin-left:10px; width: 80px" >Skip</button>
+
+                <div v-if=" latestData.isNightOver && !latestData.isDayOver && !latestData.isVotingOver">
+                  <span v-if="!myPlayer.target && !message">Pick one for the voting</span>
+                  <!-- <span v-if="myPlayer.target">You pick {{myPlayer.target}}</span> -->
+                  <span style="color:red" v-if="myPlayer.target">You are choosing {{myPlayer.target}}</span>
+                  
+                </div>  
 
                 
               </template>
 
-
-              <!-- <hr>
-              <span v-if="latestData">: {{gameStatus}}</span><br>  -->
               
-          </template>
-          
-
-
-
-          
-
-          <template v-if="currentTime == 'night'">
-            <button v-if="unFinishedPlayers.length !== 0 && currentPlayer?.doneWihtNightAction" style="margin-left: 15px" @click="nextToRole()" class="nextButton">Next Role</button>
-
-            <button v-if="unFinishedPlayers.length !== 0 && !currentPlayer?.doneWihtNightAction" style="margin-left: 15px; opacity: 0.2" class="nextButton">Next Role</button>
-
-            <button v-if="currentPlayer?.role == 'seer'" style="margin-left: 15px; " class="actionButton" :style="[currentPlayer?.target ? '' : 'opacity: 0.2']" @click="action()">Check</button>
-
-
-
             
-
-          </template>
-
-
-
-          <template v-if="currentTime == 'day' && !showingLog">
-
-            <button v-if="unFinishedPlayers.length !== 0 && currentPlayer?.doneVoting" style="margin-left: 15px" @click="nextToRole()" class="nextButton">Next Role</button>
-
-            <button v-if="unFinishedPlayers.length !== 0 && !currentPlayer?.doneVoting &&currentPlayer" style="margin-left: 15px; opacity: 0.2" class="nextButton">Next Role</button>
-
-
-            <button v-if="unFinishedPlayers.length !== 0 && !showingLog && currentPlayer " style="margin-left: 15px;" class="skipButton" @click="skipVoting()">Skip</button>
-          
-          </template>
-
-          <!-- --------------------------------------------- -->
-
-          <div v-if="currentPlayer">
-            <template v-if="currentTime == 'night'">
-              <small>{{currentPlayer.name}}</small><br>
-              <span v-if="!currentPlayer?.doneWihtNightAction">Choose your target</span><br>
-              <span v-if="currentPlayer?.doneWihtNightAction">You chose <b style="color:red">{{currentPlayer.target}} </b> as your target</span><br>
-              <span v-if="actionWarning" class="warning">{{actionWarning}}</span>
             </template>
 
-            <template v-if="currentTime == 'day' && !showingLog">
-              <small>{{currentPlayer.name}}</small><br>
-              <span v-if="!currentPlayer?.doneVoting">Choose who you think sus</span><br>
-              <span v-if="currentPlayer?.doneVoting">You chose <b style="color:red">{{currentPlayer.target}} </b> for voting</span><br>
-              <span v-if="actionWarning" class="warning">{{actionWarning}}</span>
+            <template v-if="!myPlayer.alive">
+              <h1 style="color:red; font-size: 150%;">You have been killed</h1>
             </template>
-          </div>
+              
+              
+              
+
+
+
+
+
 
           <hr>
           <!-- notice --------------------------------------------- -->
           <div>
-            <template v-if="currentTime == 'night'">
+            <template v-if="currentTime == 'night' && myPlayer.alive">
               <span>{{rules[myPlayer?.role]?.todo}} </span> <br>
               <span v-if="message" style="color:red">{{message}} <br></span>
+
               <span style='color:red' v-if="detailData.length == 1 && !latestData.isNightOver && myPlayer.team == 'wolves' && gameStatus !== 'ready' && !liveWaitingList.includes(username)">You cannot kill anyone at first night</span>
 
               
@@ -165,9 +122,9 @@
           <!-- developing and log --------------------------------------------- -->
           <div>
 
-            <span style="color:red" v-if="latestLog">{{this.latestData.officialLog.slice(-1)[0]}}</span>
-  
-            <!-- <span style="color:red">waiting list:{{latestData.isNightOver}}</span> -->
+            <!-- <span style="color:red" >{{liveWaitingList}}</span> -->
+
+            <!-- <hr> -->
           </div>
 
         </div>
@@ -181,6 +138,7 @@
   
     </div>
 
+    <!-- beggining modal -->
     <transition name="fade" >
           <div class='modal-overlay fade-in' v-if="showModal" style="height: 100vh">
             
@@ -294,6 +252,144 @@
           </div>
 
     </transition>
+
+    <!-- message modal -->
+    <transition name="fade" >
+          <div class='modal-overlay fade-in' v-if="readyToPlay && !myPlayer?.read" style="height: 100vh">
+              <div class="modal" style=" transition : all 0.6s ease 0s;"> 
+                <div>
+                  <form onsubmit="event.preventDefault()">
+
+                    <strong v-if="!latestData.isVotingOver" >This is what happened last night <br></strong>
+
+                    <strong v-if="latestData.isVotingOver" >This is what happened at the voting <br></strong>
+                    <hr>
+
+                    <span>{{officialLog}}</span><br><br>
+                    
+
+                    <strong v-if="winner !== ''" style="color:blue"> {{winner}} just won!</strong>
+
+                    <hr>
+                    <button @click="clearLog()" class="okButton">OK</button>
+
+
+                    <!-- <span>Currently {{members.length}}/9</span><br>
+                      <span>Room Code: <strong style="font-size:175%">{{roomCode}}</strong></span><br>
+
+                      <button v-if="onlineRoll == 'host'" :style="[members.length >= 4 ? '' : 'opacity: 0.2']" @click="closeTheRoom" class="closeButton">Close the Room</button><br>
+
+                      <div v-if="onlineStatus == 'waiting'" class="loader"></div>
+                      <template v-for="(player,index) in members" :key="index" style="text-align:left">
+                        <span :style="username==player ? 'color:red' : ''">{{index+1}}. {{player}}</span><br>
+
+                      </template>
+                      <hr>
+                      <span @click="showModal = false; readyToPlay = true ">heys</span> -->
+                      <!-- <template v-for="(player,index) in players" :key="index" style="text-align:left">
+                        <span :style="username==player ? 'color:red' : ''">{{index+1}}. {{player?.role}}</span><br>
+
+                      </template> -->
+                      <!-- <span v-if="latestData" style="color:black">{{latestData.waitingList}}</span> -->
+
+                      
+                  </form>
+                </div>
+
+                
+
+
+              </div>
+          </div>
+
+    </transition>
+
+    <!-- message modal -->
+    <transition name="fade" >
+          <div class='modal-overlay fade-in' v-if="readyToPlay && myPlayer.alive && myPlayer.team == 'wolves' && showingChat" style="height: 100vh">
+              <div class="modal" style=" transition : all 0.6s ease 0s; color:black"> 
+                <div >
+                  <form onsubmit="event.preventDefault()">
+
+                     <section >
+                      <div v-for="message in messages" :key="message.key" 
+                      :class="(username == message.username ? 'message current-user' : 'message')" style="overflow:auto">
+                        <div class="message-inner">
+                          <div class="username">{{ message.username }}</div>
+                          <div class="content">{{ message.content }}</div>
+                          <!-- <br><br><br> -->
+                        </div>
+                      </div>
+                    </section>
+                     <div>
+                    <!-- <input type="text"  v-model="uncheckedWord" @keyup.enter="pCheck()"> -->
+
+                    <div class="vue-template" >
+
+                      <div>
+                        <section>
+
+                            <div v-for="message in messages" :key="message.key">
+                              <div>
+                                <article class="msg-container" id="msg-0" :class="(username == message.username ? 'msg-self' : 'msg-remote')" >
+                                  <div class="msg-box">
+                                    <img class="user-img" id="user-0" :src="message.avatar" />
+                                    <div class="flr">
+                                      <div class="messages" v-if="message.content !== 'giveup'">
+                                        <p class="msg" id="msg-0">{{message.content}} </p>
+                                      </div>
+                                      <div v-else>
+                                        <p class="msg" id="msg-0">{{message.username}} has given up!</p>
+                                        <p class="msg" id="msg-0">The game is over</p>
+                                      </div>
+                                      <span class="timestamp"><span class="username">{{message.username}}</span></span>
+                                    </div>
+                                  </div>
+                                </article>
+                              </div>
+                            </div>
+                          </section>
+                      </div>
+                      <hr style="height: 1px;
+                  background-color: #ccc;
+                  border: none;">
+                      <div>
+
+                        <form class="chat-input" onsubmit="return false;" @submit.prevent="newProcessGame()" style="margin-bottom:30px" v-if="this.username !== this.lastPlayedBy">
+                          <input type="text" autocomplete="on" :placeholder="placeholderText" v-model="uncheckedWord">
+                          <button>
+                                        <svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="rgba(0,0,0,.38)" d="M17,12L12,17V14H8V10H12V7L17,12M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L5,8.09V15.91L12,19.85L19,15.91V8.09L12,4.15Z" /></svg>
+                                    </button>
+                        </form>
+                        <h5 v-else>Waiting for the other players's reply... <hr style="height: 1px;
+                  background-color: #ccc;
+                  border: none;"></h5>
+                        
+                        
+                      </div>
+                    </div>
+
+
+
+
+                    
+                  </div>
+
+
+
+                      
+                  </form>
+                </div>
+
+                
+
+
+              </div>
+          </div>
+
+    </transition>
+
+
     
   </body> 
 </html>
@@ -308,7 +404,6 @@ import {rules} from './const/rules.js'
 import db from './firebase.js';
 
 import { copyText } from 'vue3-clipboard'
-
 var randomWords = require('random-words');
 
 export default {
@@ -350,7 +445,7 @@ export default {
       target: undefined,
 
       detailData:[],
-      winner: undefined,
+      winner: '',
 
       currentPlayer: undefined,
       choosingNow: false,
@@ -373,6 +468,9 @@ export default {
       turnCount: 0,
       message: undefined,
       devMessage: '',
+      officialLog: '',
+      
+      showingChat: false,
 
 
     }
@@ -462,62 +560,14 @@ export default {
       // just werewolf is not possible
       // just villager is not possible
 
-      // just solos
-      // if(this.teamSituation == 'just solos'){
-      //   for(let i in this.players){
-      //     let player = this.players[i]
-      //     player.team = 'solos'
-      //     player.role =  this.getRandomRole(player.team)
-      //     this.rolesCount++
-      //   }
-      //   return 
-      // }
+      
 
       // -----------------------------------------------------------------------------------------
 
-      // wolves, villager
-      if(this.teamSituation == 'wolves and villagers'){
-        // console.loeg('no preoblem until here')
-        
-        // make 2 teams
-        this.getTwoTeams()
-        
-
-
-        // assign the roles to the rest of the team
-        while(this.notAssignedPlayers.length !== 0){
-          
-          let randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
-          let theName = this.notAssignedPlayers[randomNum]
-          let player = this.players.find(o => o.name === theName) 
-
-          // if you cannot put more wolves, just add villager
-          
-          if(this.doneWithWolvesAssigning()){
-
-            player.team = 'villagers' 
-            player.role = this.getRandomRole('villagers')
-             
-
-          }else{
-            if(this.wolvesOrNot()){
-              player.team = 'wolves' 
-              player.role = this.getRandomRole('wolves')
-            }else{
-              player.team = 'villagers' 
-              player.role = this.getRandomRole('villagers')
-            }
-          }
-        }
-        return 
-      }
+      
 
       // // every team
       if(this.teamSituation == 'every team'){
-        // console.log('here right ?')
-        // console.loeg('no preoblem until here')
-        
-        // make 2 teams
         this.getTwoTeams()
 
         // get one none vilalger
@@ -542,7 +592,7 @@ export default {
 
               this.generalCounter = this.roles.villagers.length + this.roles.solos.length 
               let d = Math.random();
-              if (d < (this.roles.villagers.length +1.3)/ this.generalCounter){
+              if (d < (this.roles.villagers.length )/ this.generalCounter){
                 // console.log( (this.roles.villagers.length +1.5) / this.generalCounter)
                 player.team = 'villagers' 
                 player.role = this.getRandomRole('villagers')
@@ -635,42 +685,14 @@ export default {
       let theName = this.notAssignedPlayers[randomNum]
       let player = this.players.find(o => o.name === theName)
 
-      switch(this.teamSituation){
-        case 'wolves and villagers':
-          player.team = 'wolves'
-          player.role =  this.getRandomRole('wolves')
+      player.team = 'wolves'
+      player.role =  this.getRandomRole('wolves')
 
-          randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
-          theName = this.notAssignedPlayers[randomNum]
-          player = this.players.find(o => o.name === theName)
-          player.team = 'villagers'
-          player.role = this.getRandomRole('villagers')
-
-          break;
-
-        case 'every team':
-          // console.log('here')
-          player.team = 'wolves'
-          player.role =  this.getRandomRole('wolves')
-
-          randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
-          theName = this.notAssignedPlayers[randomNum]
-          player = this.players.find(o => o.name === theName)
-          player.team = 'villagers'
-          player.role = this.getRandomRole('villagers')
-          break;
-
-      }
-      // console.log(`${player.name}: ${player.role}-----------------`)
-
-      // randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
-      // theName = this.notAssignedPlayers[randomNum]
-      // player = this.players.find(o => o.name === theName)
-      // player.team = 'villagers'
-      // player.role = this.getRandomRole('villagers')
-      // console.log(`${player.name}: ${player.role}-----------------`)
-      // console.log('done with setup')
-
+      randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
+      theName = this.notAssignedPlayers[randomNum]
+      player = this.players.find(o => o.name === theName)
+      player.team = 'villagers'
+      player.role = this.getRandomRole('villagers')
 
     },
     getRandomRole(team){
@@ -970,148 +992,8 @@ export default {
       this.judgeTheWinner()
     },
 
-    getWolvesVotingResult(who){
-      console.log('function here')
-      this.clearCount()
-      // this.clearTargetAndCounting()
-      if(this.detailData.length == 1) return false
-      
-      // get the list
-      let list = []
-      let theTarget = undefined
-
-      // if requested by wolves
-      if(who == 'wolves'){
-        for(let i in this.players){
-          let player = this.players[i]
-          if(player.team  == 'wolves' && player.alive) {
-            let target = this.players.find(o => o.name === player.target) 
-            // console.log(target)
-            target.targetedBy++
-          }
-        }
-  
-        let max = 1
-        this.generalCounter= 0
-        for(let c in this.players){
-          
-          let player = this.players[c]
-          if(player.targetedBy == max){
-            list.push(player.name)
-            this.generalCounter++
-          }else if(player.targetedBy > max){
-            this.generalCounter++
-            max = player.targetedBy
-
-            list = []
-            list.push(player.name)
-          }
-        }
-      }
-
-      console.log(list)
-
-      // ------------------------------------------------------------
-
-      
-
-      // if they choose only one person
-      if(list.length == 1){
-        theTarget = this.players.find(o => o.name === list[0]) 
-        this.generalMessage = `${who} chose ${theTarget.name} unanimously`
-          
-  
-        console.log(this.generalMessage) 
-        this.latestData.nightLog.push(this.generalMessage)
-        
-        return theTarget
-      }else if(list.length> 1){
-        if(who == 'wolves'){
-          // pick randomly
-          let theName = this.getRandomValue(list)
-          theTarget = this.players.find(o => o.name === theName) 
-          this.generalMessage = `${who}'s voting was splited so picked ${theTarget.name} randomly`
-          console.log(this.generalMessage) 
-          this.latestData.nightLog.push(this.generalMessage)
-          return theTarget
-        }
-      }
-
-    },
-    getVillagerVotingResult(){
-      console.log('function here')
-      // get the list
-      this.clearCount()
-      // this.clearTargetAndCounting()
-      let list = []
-      let theTarget = undefined
-
-      for(let i in this.players){
-        let player = this.players[i]
-        if(player.alive && player.target !== 'skipping'){
-
-          let target = this.players.find(o => o.name === player.target) 
-          target.targetedBy++
-        }
-      }
-      
-      let max = 1
-      this.generalCounter= 0
-      for(let c in this.players){
-        
-        let player = this.players[c]
-        if(player.targetedBy == max){
-          list.push(player.name)
-          this.generalCounter++
-        }else if(player.targetedBy > max){
-          this.generalCounter++
-          max = player.targetedBy
-
-          list = []
-          list.push(player.name)
-        }
-      }
-
-      // -------------------------------------------------------------
-      // if they choose no body
-
-      if(list.length == 0){
-        console.log('reached here')
-        this.generalMessage = `Everyone didn't vote so nobody died`
-        // console.log(this.generalMessage) 
-        this.latestData.nightLog.push(this.generalMessage)
-        this.latestData.officialLog = []
-        this.latestData.officialLog.push(this.generalMessage)
-        this.showingLog = true
-        return false
-      } 
-
-      // if they choose only one person
-      if(list.length == 1){
-        theTarget = this.players.find(o => o.name === list[0]) 
-        this.generalMessage = `Villagers chose ${theTarget.name} to kill`
-          
-
-        console.log(this.generalMessage)
-        this.latestData.officialLog = [] 
-        this.latestData.nightLog.push(this.generalMessage)
-        this.latestData.officialLog = []
-        // this.latestData.officialLog.push(`Villagers voted and killed ${theTarget.name} succesfully`)
-        this.latestData.officialLog.push(this.generalMessage)
-        
-        return theTarget
-      }else if(list.length> 1){
-          // pick no one
-          this.generalMessage = `Villager's voting was splited and couldn't decide`
-          console.log(this.generalMessage) 
-          this.latestData.officialLog = []
-          this.latestData.officialLog.push(this.generalMessage)
-          this.latestData.nightLog.push(this.generalMessage)
-          this.showingLog= true
-          return false
-      }
-
-    },
+    
+    
 
     clearTargetAndCounting(){
       console.log('function here')
@@ -1127,65 +1009,11 @@ export default {
       }
     },
 
-    clearAllTargets(){
-      console.log('function here')
-      for(let i in this.players){
-        let player = this.players[i]
-        if(player.alive){
-          player.target = undefined
-        }
-      }
-    },
+    
 
     getTheCurrentPlayer(){
 
       this.currentPlayer = this.players.find(o => o.name === this.unFinishedPlayers[0]) 
-    },
-
-    judgeTheWinner(){
-      let wolvesCount = 0
-      let villagersCount = 0
-      // let solosCount = 0
-      // let theSurvivor = undefined
-
-      for(let i in this.players){
-        let player = this.players[i]
-        if(player.alive){
-          if(player.team == 'wolves'){
-            wolvesCount++
-          }else if(player.team == 'villagers'){
-            villagersCount++
-          }else if(player.team == 'solos'){
-            // theSurvivor = player.name
-            // solosCount++
-          }
-
-        }
-
-      }
-
-      // if()
-      // for now it just solo is just fool so
-
-
-      if(wolvesCount == 0) this.winner = 'villagers'
-      if(villagersCount == 0) this.winner = 'wolves'
-
-      
-
-      //   // if(villagersCount == 0){
-      //   //   this.winner = 'solos'
-      //   // }else if(solosCount == 0){
-      //   //   this.winner = 'villagers'
-      //   // }
-      // }else if(villagersCount == 0 && solosCount == 0){
-      //   this.winner = 'wolves'
-      //   // this.latestData.officialLog.push(`${this.winnner} is the winner`)
-
-      // }else if(wolvesCount == 0 && solosCount == 0){
-      //   this.winner = 'villagers'
-        
-      // }
     },
 
 
@@ -1203,12 +1031,6 @@ export default {
         player.target = undefined
         player.doneVoting = false
 
-      }
-    },
-    clearCount(){
-      for(let i in this.players){
-        let player = this.players[i]
-        player.targetedBy = 0
       }
     },
     action(){
@@ -1296,6 +1118,7 @@ export default {
       const ref = db.collection('werewolf')
       ref.doc(`${result}`).set({
         // TotalNum: this.userNum 
+        winner: this.winner,
         hostName: this.username,
         gameStatus: 'waiting',
         members: JSON.stringify([this.username]),
@@ -1323,6 +1146,8 @@ export default {
       // document.execCommand(this.roomCode);
 
       copyText(`${this.roomCode}`)
+      console.clear()
+      // clipboard(this.roomCode)
       this.ReciveTheData()
 
 
@@ -1406,15 +1231,15 @@ export default {
       this.multiAssignRoles()
 
       // sending the data for the first time
-      this.detailData =[{nightLog: [], dayLog: [], isNightOver: false, isDayOver: false, officialLog: [],players: this.players, waitingList:[],gameStatus: 'ready',}]
+      this.detailData =[{nightLog: [], dayLog: [], isNightOver: false,isVotingOver:false, isDayOver: false, officialLog: [], waitingList:[],gameStatus: 'ready'}]
       const ref = db.collection('werewolf')
       ref.doc(`${this.roomCode}`).update({
-        // TotalNum: this.userNum 
-        // hostName: this.username,
         gameStatus: 'ready',
-        // players: JSON.stringify(this.players),
+        // "players: JSON.stringify(this.players),
+        players: this.players,
         // waitingList: JSON.stringify([]),
-        detailData: JSON.stringify( this.detailData)
+        detailData: JSON.stringify( this.detailData),
+        officialLog: '',
         // members: JSON.stringify([this.username]),
 
       })
@@ -1437,7 +1262,125 @@ export default {
 			}
       return result
     },
-    // important------------------------------------------
+    multiAssignRoles(){
+      console.clear()
+
+      // initalizing the obj
+      let count = 0
+      this.players = {}
+      while(count < this.members.length){
+        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true,}
+        count++
+      }
+
+      
+
+
+      // assigining roles -----------------------------------------------------------
+      // change the max wolves num
+      if(this.theLength < 5){
+        this.maxWolvesNum = 1
+      }
+
+      // get one wolf, and one vilalger
+      // first wolf
+      let randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
+      let randomKey = this.notAssignedPlayers[randomNum]
+      let player = this.players[randomKey]
+      player.team = 'wolves'
+      player.role =  this.getRandomRole('wolves')
+
+      // first villager
+      randomNum =Math.floor(Math.random() * this.notAssignedPlayers.length);
+      randomKey = this.notAssignedPlayers[randomNum]
+      player = this.players[randomKey]
+      player.team = 'villagers'
+      player.role = this.getRandomRole('villagers')
+
+      // assign the roles to the rest of the team --------------
+      while(this.notAssignedPlayers.length !== 0){
+
+        let randomNum = Math.floor(Math.random() * this.notAssignedPlayers.length);
+        let randomKey = this.notAssignedPlayers[randomNum]
+        let player = this.players[randomKey]
+
+        // if you cannot put more wolves, just add villager
+        
+        if(this.doneWithWolvesAssigning()){
+
+          if(this.doneWithSoloAssigning){
+            player.team = 'villagers' 
+            player.role = this.getRandomRole('villagers')
+          }else{
+
+            this.generalCounter = this.roles.villagers.length + this.roles.solos.length 
+            let d = Math.random();
+            if (d < (this.roles.villagers.length +1.3)/ this.generalCounter){
+              // console.log( (this.roles.villagers.length +1.5) / this.generalCounter)
+              player.team = 'villagers' 
+              player.role = this.getRandomRole('villagers')
+            }else{
+              // console.log('wovles')
+              player.team = 'solos' 
+              player.role = this.getRandomRole('solos')
+              this.doneWithSoloAssigning = true
+            }
+          }
+
+        }else{
+          // console.log('here')
+          if(this.wolvesOrNot()){
+            player.team = 'wolves' 
+            player.role = this.getRandomRole('wolves')
+          }else{
+            // villagers or solo 
+            if(this.doneWithSoloAssigning){
+              player.team = 'villagers' 
+              player.role = this.getRandomRole('villagers')
+            }else{
+              this.generalCounter = this.roles.villagers.length + this.roles.solos.length 
+              let d = Math.random();
+              if (d < (this.roles.villagers.length +1.3)/ this.generalCounter){
+                // console.log( (this.roles.villagers.length +1.5) / this.generalCounter)
+                player.team = 'villagers' 
+                player.role = this.getRandomRole('villagers')
+                
+              }else{
+                // console.log('wovles')
+                player.team = 'solos' 
+                player.role = this.getRandomRole('solos')
+                this.doneWithSoloAssigning = true
+              }
+            }
+            
+            
+
+            
+          // console.log(player.role)
+          }
+        }
+      }
+      // let msg =''
+      // for(let i in this.players){
+      //   let theChosenOne = this.players[i]
+      //   // console.log(i)
+      //   // msg  = msg  + "\n" + this.players[i].name
+      //   msg  = msg  + "\n" + i + ': ' + theChosenOne.role
+        
+      // }
+      // msg = msg  + "\n" 
+      // alert(msg)
+      // if(msg.length >1) return 
+
+      return 
+
+    
+
+
+      
+    },
+
+    // important----------------------------------------------------
     ReciveTheData(){
       
       db.collection("werewolf").doc(`${this.roomCode}`)
@@ -1445,7 +1388,6 @@ export default {
         
         if(this.onlineStatus == 'waiting'){
           // console.log('new data incoming ------------')
-          // console.log(doc.data().members)
           this.members = JSON.parse( doc.data()?.members)
 
           if(!this.members.includes(this.username)){
@@ -1460,29 +1402,43 @@ export default {
             // this.ready()
 
             this.detailData = JSON.parse(doc.data().detailData)
-            this.players = this.latestData.players
-            this.waitingList = this.latestData.waitingList
+            // this needed be parse 
+            // this.players = JSON.parse(doc.data().players)
+            this.players = doc.data().players
+            console.log('got the intial players data')
+            this.players = doc.data().players
             
-
+            // skip function -----
             if(this.skipTheFirstStep){
               this.showModal = false; 
-              
-              this.readyToPlay = true
+              this.readyToPlay = true;
+              this.ready()
             }
+            
             
           }
           
 
         }else if(this.onlineStatus == 'ready'){
-          console.log('new data incoming ------------')
+          // this is where everybody gets the info---------------------
           this.detailData= JSON.parse(doc.data().detailData)
-          this.players = this.latestData.players
           this.gameStatus = this.latestData.gameStatus
+          // console.log(`this winner is ${this.winner}`)
+          this.winner =  doc.data().winner
+
+          this.officialLog = doc.data().officialLog
+
+          // console.log(doc.data().players) 
+          // console.log(`-----------------`)
+          // console.log(doc.data())
+          this.players = doc.data().players
+
           if(this.onlineRoll == 'host'){
-            if(this.liveWaitingList.length == this.players.length){
+            if(this.liveWaitingList.length == this.theLength){
               // very first time
               if(this.turnCount == 0){
-                console.log('advancing to the first night')
+                console.log('---------------')
+                // console.log('advancing to the first night')
                 this.turnCount++
 
                 // this.detailData[0].gameStatus = 'playing'
@@ -1492,132 +1448,217 @@ export default {
                 this.toggleWaitingList()
                 // this.latestData.waitingList = []
 
-                const ref = db.collection('werewolf')
-                ref.doc(`${this.roomCode}`).update({
-                  detailData: JSON.stringify(this.detailData)
-                })
+                this.updatingWholeData()
 
-              }else if(this.turnCount == 1){
+                // const ref = db.collection('werewolf')
+                // ref.doc(`${this.roomCode}`).update({
+                //   detailData: JSON.stringify(this.detailData)
+                // })
+
+              }else if(!this.latestData.isNightOver){
                 
-                console.log(this.devMessage)
+                console.log('turning to day, open for voting')
 
                 this.turnCount++
                 this.devMessage ='advancing to the first day'
 
                 // death judge, no one can die at the first 
-                this.latestData.officialLog.push('Last night: no body died')
+                this.checkTheNightResult()
 
                 // winner judge, no one can win at this point
+                this.judgeTheWinner()
 
                 // change the day, and show them 
                 this.latestData.isNightOver = true
 
 
                 // toggle for voting, madakana?
-                this.latestData.waitingList = [] 
+                this.toggleWaitingList()
 
                 // and send the data now
-                this.updatingData()
+                this.updatingWholeData()
+                // this.updatingData()
+
+                return
+
+                
+                
+              }else if(!this.latestData.isVotingOver){
+
+                console.log('showing the votign result')
+
+                // death judge, for the voting
+                this.checkTheVotingResult()
+
+                // winner judge, 
+                this.judgeTheWinner()
+
+                // change the day, and show them 
+                this.latestData.isVotingOver = true
+
+                // toggle for reading, and next step false
+                this.toggleWaitingList()
+
+                // and send the data now
+                this.updatingWholeData()
 
                 return
 
                 
                 
               }
+              // else if(!this.latestData.isDayOver){
 
-              // do the things to advance it
+              //   console.log('showing the result again why/')
+
+                
+              //   // toggle for reading, and next step false
+              //   this.toggleWaitingList()
+
+                
+
+
+
+
+              //   // add more data
+              //   // this.detailData.push({nightLog: [], dayLog: [], isNightOver: false,isVotingOver:false, isDayOver: false, officialLog: [], waitingList:[],gameStatus: 'ready',winner: undefined})
+
+              //   // and send the data now
+              //   this.updatingWholeData()
+
+              //   return
+
+                
+                
+              // }
+              else if(this.latestData.isVotingOver){
+
+                console.log('advancing to the nth night')
+                this.latestData.isDayOver = true
+
+                
+                // this.latestData.isDayOver = true
+
+
+
+                // toggle for reading, and next step false
+                this.toggleWaitingList()
+
+                // add more data
+                this.detailData.push({nightLog: [], dayLog: [], isNightOver: false,isVotingOver:false, isDayOver: false, officialLog: [], waitingList:[],gameStatus: 'ready'})
+
+                // and send the data now
+                this.updatingWholeData()
+
+                return
+
+                
+              }
             }
           }
         }
           return 
       }
-
-      
       )
-
-
-        
     },
 
-    multiAssignRoles(){
-      let count = 0
-      while(count < this.members.length){
-        this.players.push({name: this.members[count], alive: true,role: undefined,team: undefined,target: undefined,targetedBy: 0, dayVotingTarget: undefined, doneVoting: true, seerList: [], doneWihtNightAction: true,done: true})
-        count++
-      }
+    
 
-      console.log(this.players)
-
-
-      this.assignRoles()
-
-      
-    },
-
-
-    // actual multi game----
+    // actual multi game ------------
 
     ready(){
-      if(this.waitingForOthers) return
+      // if(this.waitingForOthers) return
 
-      if(this.latestData.waitingList.includes(this.username)) return 
+      // if(this.latestData.waitingList.includes(this.username)) return 
 
-      this.latestData.waitingList.push(this.username)
+      // this.latestData.waitingList.push(this.username)
+      this.myPlayer.waiting = true
       
-      if(this.myPlayer.role == 'seer') this.myPlayer.target = undefined
+      if(this.myPlayer.role == 'seer') this.myPlayer.target = ''
       this.message = undefined
 
+      this.updatingData()
 
-      const ref = db.collection('werewolf')
-      ref.doc(`${this.roomCode}`).update({
-        detailData: JSON.stringify( this.detailData)
-        // members: JSON.stringify([this.username]),
 
-      })
+      // const ref = db.collection('werewolf')
+      // ref.doc(`${this.roomCode}`).update({
+      //   detailData: JSON.stringify( this.detailData)
+      //   // members: JSON.stringify([this.username]),
 
-      console.log('adding my data')
+      // })
+
+      this.devMessage= 'adding my data'
     },
 
     updatingData(){
-      if(this.waitingForOthers) return
+      
+      // if(this.waitingForOthers) return
 
       // if(this.latestData.waitingList.includes(this.username)) return 
 
       // this.latestData.waitingList.push(this.username)
 
+      // how to get index of players
+      // let index = this.players.indexOf(this.username)
+      let updatingTarget = `players.${this.username}`
 
       const ref = db.collection('werewolf')
       ref.doc(`${this.roomCode}`).update({
-        detailData: JSON.stringify( this.detailData)
-        // members: JSON.stringify([this.username]),
+        // detailData: JSON.stringify( this.detailData)
+       [updatingTarget]: this.myPlayer
+        // [updatingTarget]: this.myPlayer
 
       })
 
-      console.log('adding my data')
+    },
+
+    updatingWholeData(){
+      // if(this.waitingForOthers) return
+
+      // if(this.latestData.waitingList.includes(this.username)) return 
+
+      // this.latestData.waitingList.push(this.username)
+
+      // how to get index of players
+      // let index = this.players.indexOf(this.username)
+      // let updatingTarget = `players.${this.username}`
+      // console.log(this.officialLog)
+      const ref = db.collection('werewolf')
+      ref.doc(`${this.roomCode}`).update({
+        detailData: JSON.stringify( this.detailData),
+        players: this.players,
+        winner: this.winner,
+        officialLog: this.officialLog
+        // [updatingTarget]: this.myPlayer
+
+      })
+
+      // console.log('adding my data')
     },
 
     toggleWaitingList(){
       // first time when it changed
 
       // everybody has to click yes
-      this.latestData.waitingList = []
+      // this.latestData.waitingList = []
 
       if(this.detailData?.length ==1 && this.gameStatus == 'ready'){
+
         console.log('first time toggling ')
         for(let i in this.players){
           let player = this.players[i]
           // everybody has to click yes, unless skip function
+          player.waiting = false
+
           if(this.skipTheFirstStep){
-            if(player.role !== 'seer'){
-            // pl
-              this.latestData.waitingList.push(player.name)
-            
-            }
+            player.waiting = true
           }  
 
-          if(player.role == 'seer'){
+          if(player.role == 'seer' || player.team == 'wolves'){
             // player
-            player.done = false
+            // player.ready = false
+            // player.done = false
+            player.waiting = false
           }
         }
 
@@ -1628,15 +1669,64 @@ export default {
         // update: detailData with waiting list
       }
 
-      // for voting
-      if(this.latestData?.isNightOver && !this.latestData?.isDayOver){
+      // after evryone ready for the voting
+      if(this.latestData.isNightOver && !this.latestData.isVotingOver){
         console.log('toggle for voting')
         for(let i in this.players){
-          let player=  this.players[i]
+          let player = this.players[i]
           player.done = false
+          player.ready = false
+          player.read = false
+          player.waiting = false
+          player.target = ''
         }
         return
       }
+
+      // showing the message and toggle
+      if(this.latestData.isVotingOver && !this.latestData.isDayOver){
+        console.log('toggle for showing voting result')
+        
+        for(let i in this.players){
+          let player = this.players[i]
+          player.ready = true
+          player.done = true
+          player.target = ''
+          
+          player.waiting = false
+          player.read = false
+          // player.waiting = false
+
+          // if(player.role == 'villager') player.waiting = true
+
+        }
+
+        return
+      }
+
+      // showing the message and toggle
+      if(this.latestData.isDayOver){
+        console.log('toggle for the message the result action')
+        
+        for(let i in this.players){
+          let player = this.players[i]
+          player.ready = false
+          player.done = false
+          player.waiting = false
+          // player.waiting = false
+
+          if(this.skipTheFirstStep){
+            if(player.role == 'villager' || player.role == 'fool')
+            player.waiting = true
+            player.ready = false
+            player.done = false
+          } 
+
+        }
+
+        return
+      }
+    
 
       
     },
@@ -1645,6 +1735,10 @@ export default {
       let flag = false
 
       if(target.name == this.myPlayer.name) return false
+
+      if(this.winner){
+        return true
+      }
 
       if(this.myPlayer.team == 'wolves'){
         if(target.team == 'wolves') return true
@@ -1658,12 +1752,40 @@ export default {
 
     },
 
+    canIOpenChat(){
+
+      if(this.myPlayer.team !== 'wolves'){
+
+        return false
+      }
+
+      return true
+
+      // if(this.winner){
+      //   return true
+      // }
+
+      // if(this.myPlayer.team == 'wolves'){
+      //   if(target.team == 'wolves') return true
+      // }
+
+      // if(this.myPlayer.role == 'seer'){
+      //   if(this.myPlayer.seerList?.includes(target.name)) return true
+      // }
+
+      // return flag
+
+    },
+
     clickingAPlayer(target){
       
       // if(!this.choosingNow) return
       if(this.myPlayer?.done) return
+      if(!this.myPlayer.alive) return
 
-      this.actionWarning = undefined
+      
+
+      this.message = undefined
 
       // most likely cannot pick yourself right?
       if(this.myPlayer.name == target.name){
@@ -1673,8 +1795,15 @@ export default {
         return
       }
 
+      // for the voting
+      if(this.currentTime == 'day'){
+        this.message = `You are voting "${target.name}" `
+        this.myPlayer.target = target.name
+        return
+      }
 
 
+      // for the wolves targeting
       if(this.myPlayer.team == 'wolves'){
         if(target.team == 'wolves'){
           this.message = 'Cannot choose the same team'
@@ -1682,13 +1811,6 @@ export default {
           this.myPlayer.done = false
           return 
         }
-
-        if(!target.alive){
-          this.actionWarning = 'Cannot choose the dead'
-          this.myPlayer.target = undefined
-          this.myPlayer.done = false
-          return 
-        } 
 
         this.myPlayer.target = target.name
         console.log(target.name)
@@ -1736,20 +1858,247 @@ export default {
     },
 
     confirm(){
+      if(this.currentTime == 'day'){
+        if(this.myPlayer.target == '') return
+        // let target = this.players.find(o => o.name === this.myPlayer.target)
+        // this.message = undefined
+        // this.myPlayer.target = 
+        this.myPlayer.done = true
+        this.myPlayer.waiting = true
+        this.updatingData()
+        return
+      }
       if(this.myPlayer.role == 'seer'){
-        let target = this.players.find(o => o.name === this.myPlayer.target)
+        let target = this.players[this.myPlayer.target]
         this.message = `"${target.name}" is ${target.role}`
         this.myPlayer.seerList.push(target.name)
         this.myPlayer.done = true
         this.updatingData()
+        return
       }
+    },
+
+    clearLog(){
+      this.myPlayer.read = true
+      this.updatingData()
     },
 
 
 
+    checkTheNightResult(){
+      // if first night 
+      if(this.detailData.length == 1){
+        this.officialLog =`Last night: nobody died`
+        return
+      }
+
+      // dont forget to turn off the target after 
+
+
+      // wolves choosing the target as a team
+
+      let theTarget = this.getWolvesVotingResult()
+
+
+      // do the killing if there is nobody protecting them
+      this.officialLog = `${theTarget.name} was killed`
+      theTarget.alive = false 
+
+      // do the killing for the solios
+
+      // clear the target ------------------
+      this.clearAllTargets()
+      
+
+    },
+    checkTheVotingResult(){
+
+      // for now jus assume everyone skips 
+      let target = this.getVillagerVotingResult()
+      target = this.players[target?.name]
+      
+      
+      if(!target){
+        this.officialLog = 'Villagers could not decide the victim from voting'
+        return 
+      }
+
+      
+
+
+      // if not get the most voted or random
+
+      // do the killing if there is nobody protecting them
+      
+      if(target){
+        this.officialLog = `Villagers voted and killed ${target.name} succesfully`
+        
+        // this.latestData.officialLog.push(`${theTarget.name} was killed`)
+        target.alive = false 
+
+        if(target.role == 'fool'){
+          this.winner = `${target.name} as a fool`
+        }
+
+      }
+
+      // do the killing for the solios
+
+    },
+    getVillagerVotingResult(){
+
+      // clear the targetcount
+      this.clearCount()
+
+      // this.clearTargetAndCounting()
+      let list = []
+      let theTarget = undefined
+
+      for(let i in this.players){
+        let player = this.players[i]
+        if(player.alive && player.target !== 'skipping'){
+          let target = this.players[player.target] 
+          target.targetedBy++
+        }
+      }
+
+      
+      let max = 1
+      this.generalCounter= 0
+      for(let c in this.players){
+        
+        let player = this.players[c]
+        if(player.targetedBy == max){
+          list.push(player.name)
+          this.generalCounter++
+        }else if(player.targetedBy > max){
+          this.generalCounter++
+          max = player.targetedBy
+
+          list = []
+          list.push(player.name)
+        }
+      }
+
+      // -------------------------------------------------------------
+      // if they choose no body
+
+      if(list.length == 0){
+        return undefined
+      } 
+
+      // if they choose only one person
+      if(list.length == 1){
+        theTarget = this.players[list[0]]
+        this.generalMessage = `Villagers chose ${theTarget.name} to kill`
+    
+        this.clearCount()
+        return theTarget
+      }else if(list.length > 1){
+        // pick no one because the vote is splited
+        return false
+      }
+
+    },
+    getWolvesVotingResult(){
+
+      // clear the targetcount
+      this.clearCount()
+      
+      // get the list
+      let list = []
+      let theTarget = undefined
+
+      for(let i in this.players){
+        let player = this.players[i]
+        if(player.team  == 'wolves' && player.alive) {
+          let target = this.players[player.target]
+          target.targetedBy++
+        }
+      }
+
+      let max = 1
+      this.generalCounter= 0
+      for(let c in this.players){
+        let player = this.players[c]
+        if(player.targetedBy == max){
+          list.push(player.name)
+          this.generalCounter++
+        }else if(player.targetedBy > max){
+          this.generalCounter++
+          max = player.targetedBy
+
+          list = []
+          list.push(player.name)
+        }
+      }
+
+      // ------------------------------------------------------------
+      // if they choose only one person
+      if(list.length == 1){
+        theTarget = this.players[list[0]] 
+        this.generalMessage = `Wolves chose ${theTarget.name} unanimously`
+        console.log(this.generalMessage) 
+        return theTarget
+
+      }else if(list.length> 1){
+        // pick randomly
+        let theName = this.getRandomValue(list)
+        theTarget = this.players[theName]
+        this.generalMessage = `Wolves' voting was splited so picked ${theTarget.name} randomly`
+        console.log(this.generalMessage) 
+        return theTarget
+      }
+
+    },
+    clearCount(){
+      for(let i in this.players){
+        let player = this.players[i]
+        player.targetedBy = 0
+      }
+    },
+    clearAllTargets(){
+      console.log('function here')
+      for(let i in this.players){
+        let player = this.players[i]
+        if(player.alive){
+          player.target = ''
+        }
+      }
+    },
+    judgeTheWinner(){
+      let wolvesCount = 0
+      let villagersCount = 0
+
+      for(let i in this.players){
+        let player = this.players[i]
+        if(player.alive){
+          if(player.team == 'wolves'){
+            wolvesCount++
+          }else if(player.team == 'villagers'){
+            villagersCount++
+          }
+        }
+
+      }
+      if(wolvesCount == 0){
+        this.winner = 'villagers'
+        return true
+      }else if(villagersCount == 0){
+         this.winner = 'wolves'
+        return true
+      }
+
+      return false
+    },
 
     
+    
 
+
+
+
+   
     
   },
   watch:{
@@ -1770,10 +2119,6 @@ export default {
       }else{
         this.modalWarning = undefined
       }
-    },
-    winner(){
-      this.latestData.officialLog.push(`${this.winner} is the winner`)
-      alert(`${this.winner} just won`)
     },
     latestIndex(){
       // localStorage.werewolfGameData = JSON.stringify(this.latestData.nightLog)
@@ -1808,6 +2153,10 @@ export default {
       if(this.roomCode.length == 5){
         this.joinARoom()
       }
+    },
+
+    winner(){
+      console.log(`this winner is ${this.winner}`)
     }
 
   },
@@ -1965,7 +2314,8 @@ export default {
       let list = []
       for(let i in this.players){
         let player = this.players[i]
-        if(!player.role) list.push(player.name)
+        if(!player.role) list.push(i)
+        if(player.role == '') list.push(i)
       }
       return list
     },
@@ -1994,23 +2344,22 @@ export default {
     latestData(){
       return this.detailData.slice(-1)[0]
     },
-    // latestLog(){
-    //   return this.latestData.officialLog?.slice(-1)[0]
-    // },
 
     liveWaitingList(){
-      return this.latestData?.waitingList
+      let list =[]
+      for(let i in this.players){
+        let player = this.players[i]
+        if(player.waiting || !player.alive) list.push(player.name)
+      }
+      return list
     },
 
     
     myPlayer(){
-      // return this.players.find(o => o.name === this.username) 
-      return this.latestData.players.find(o => o.name === this.username)
-    },
 
-    myRole(){
-      let player =  this.players.find(o => o.name === this.username) 
-      return player.role
+      // return this.players.find(o => o.name === this.username) 
+      // return this.latestData.players.find(o => o.name === this.username)
+      return this.players[this.username]
     },
 
     waitingForOthers(){
@@ -2023,31 +2372,7 @@ export default {
 
 
     // ------------------------------
-    canMoveForward(){
-      if(this.winner) return false
-      if(this.currentTime == 'day'){
-        if(this.showingLog) return true
-
-        for(let i in this.players){
-          let player = this.players[i]
-          if(player.alive){
-
-            if(!player.doneVoting) return false
-          }
-        }
-        return true
-      }
-
-      if(this.currentTime == 'night'){
-        for(let i in this.players){
-          let player = this.players[i]
-          if(player.canMoveAtNight && !player.doneWihtNightAction && player.alive) return false
-        }
-        return true
-      }
-
-      return false
-    },
+    
     unFinishedPlayers(){
       let list = []
 
@@ -2119,6 +2444,29 @@ export default {
         if(player.team == 'wolves' && !player.doneWihtNightAction)  list.push(player.name)
       }
 
+      return list
+    },
+
+    
+
+
+    // -----------------------------------------
+    theLength(){
+      return  Object.keys(this.players).length
+    },
+    sortedObj(){
+      if(!this.players) return
+      let list = []
+      let count =0
+      while(count < this.theLength){
+
+        for(let i in this.players){
+          let player = this.players[i]
+          if(player.sort == count) list.push(player)
+          // if(player.sort == count) list.push(i)
+        }
+        count++
+      }
       return list
     },
 
@@ -2551,6 +2899,107 @@ input[type=number], select {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+
+/* ----------------------------------- */
+.blink {
+  background-color: #1c87c9;
+  border: none;
+  color: #eeeeee;
+  cursor: pointer;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+
+  animation: glowing 1500ms infinite;
+}
+
+
+@keyframes glowing {
+  0% {
+    background-color: #2ba805;
+    box-shadow: 0 0 3px #2ba805;
+  }
+  50% {
+    background-color: #49e819;
+    box-shadow: 0 0 10px #49e819;
+  }
+  100% {
+    background-color: #2ba805;
+    box-shadow: 0 0 3px #2ba805;
+  }
+}
+
+.purple-blink {
+  background-color: #1c87c9;
+  border: none;
+  color: #eeeeee;
+  cursor: pointer;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+
+  animation: purple-glowing 1500ms infinite;
+}
+
+
+@keyframes purple-glowing {
+  0% {
+    background-color: #9370DB;
+    box-shadow: 0 0 3px #9370DB;
+  }
+  50% {
+    background-color:	#EE82EE;
+    box-shadow: 0 0 10px 	#EE82EE
+  }
+  100% {
+    background-color: #9370DB;
+    box-shadow: 0 0 3px #9370DB;
+  }
+}
+
+.chat-input {
+    flex: 0 0 auto;
+    height: 60px;
+    background: #40434e;
+    border-top: 1px solid #2671ff;
+    box-shadow: 0 0 4px rgba(0,0,0,.14),0 4px 8px rgba(0,0,0,.28);
+    /* width: 100%; */
+}
+.chat-input input {
+    height: 59px;
+    line-height: 60px;
+    outline: 0 none;
+    border: none;
+    width: calc(100% - 60px);
+    color: white;
+    text-indent: 10px;
+    font-size: 12pt;
+    padding: 0;
+    background: #40434e;
+}
+.chat-input button {
+    float: right;
+    outline: 0 none;
+    border: none;
+    background: rgba(255,255,255,.25);
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    padding: 2px 0 0 0;
+    margin: 10px;
+    transition: all 0.15s ease-in-out;
+}
+.msg-box {
+    display: flex;
+    background: #5b5e6c;
+    padding: 10px 10px 0 10px;
+    border-radius: 0 6px 6px 0;
+    max-width: 80%;
+    width: auto;
+    float: left;
+    box-shadow: 0 0 2px rgba(0,0,0,.12),0 2px 4px rgba(0,0,0,.24);
 }
 
 

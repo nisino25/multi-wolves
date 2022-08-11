@@ -1,5 +1,5 @@
 export const rules = {
-  werewolf: {team: 'wolves',description: 'Each night the Werewolf can vote on a player to kill and talk with the other Werewolves. Though it is the most basic role of the wolf team, the werewolf still provides essential support to its team when played well.', winCondition: `The werewolves have to kill the Random Killer and kill all villagers.`,todo: `Choose or vote for your target`},
+  werewolf: {team: 'wolves',description: 'Each night the Werewolf can vote on a player to kill and talk with the other Werewolves. Though it is the most basic role of the wolf team, the werewolf still provides essential support to its team when played well.', winCondition: `The werewolves have to kill the Random Killer and kill all villagers.`,todo: `Choose your target`},
 
   // ------------------------------------------------
 
