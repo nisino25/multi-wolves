@@ -5,7 +5,9 @@ export const roles = {
 
   villagers:[
     {team: 'villagers', name: 'villager', canMoveAtNight: false, default: true, doneWihtNightAction: false, },
-    {team: 'villagers', name: 'seer', canMoveAtNight: true, default: true, doneWihtNightAction: false,}
+    {team: 'villagers', name: 'seer', canMoveAtNight: true, default: true, doneWihtNightAction: false,},
+    {team: 'villagers', name: 'detective', canMoveAtNight: true, default: true, doneWihtNightAction: false,},
+
   ],
 
   solos:[

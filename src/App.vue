@@ -23,7 +23,7 @@
         
         <div class="players row">
           <template  v-for="(player,index) in sortedObj" :key="index">
-            <div class="card"  :style="[!player.alive  ? 'opacity: 0.5 ' : '']" :class="[myPlayer?.target == player.name ? 'targeted' : '']"  @click="clickingAPlayer(player)">
+            <div class="card"  :style="[!player.alive  ? 'opacity: 0.5 ' : '']" :class="[targetVisible(player) ? 'targeted' : '']"  @click="clickingAPlayer(player)">
 
               <img v-if="player.alive" src="../public/icons/user.png" alt="Avatar">
               <i v-if="!player.alive" class='fas fa-skull-crossbones' style='font-size:35px;color:red; margin-top: 5px'></i>
@@ -73,7 +73,7 @@
 
                 <button v-if="canIOpenChat()" @click="showingChat = true" class="purple-blink" style="width: 100px; margin-left: 20px;">Open Chat</button>
 
-                <button v-if="!myPlayer.done " :style="[myPlayer.target ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
+                <button v-if="!myPlayer.done " :style="[confirmCheck() ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
 
                 <button v-if="!myPlayer.done && latestData.isNightOver && !latestData.isDayOver" :style="[myPlayer.target ? '' : '']" @click="myPlayer.target = 'skipping'" style="background-color: #8A2BE2; margin-left:10px; width: 80px" >Skip</button>
 
@@ -122,7 +122,7 @@
           <!-- developing and log --------------------------------------------- -->
           <div>
 
-            <!-- <span style="color:red" >{{liveChatList}}</span> -->
+            <!-- <span style="color:red" >{{myPlayer.target}}</span> -->
 
             <!-- <hr> -->
           </div>
@@ -304,6 +304,7 @@
 
     </transition>
 
+
     <!-- message modal -->
 
     <transition name="fade" >
@@ -375,6 +376,7 @@ export default {
   data(){
     return{
       readyToPlay: false,
+      // readyToPlay: true,
       groupSize: 6,
       players: [],
 
@@ -1253,6 +1255,41 @@ export default {
 
       
     },
+    nightMove(role){
+      if(role == 'villager' || role == 'fool'){
+        return false
+      }
+
+      return true
+    },
+    confirmCheck(){
+
+      if(this.currentTime == 'night' && this.myPlayer.role == 'detective'){
+        if(this.myPlayer.target?.length == 2){
+          return true
+        }else{
+          return false
+        }
+      }
+      
+      if(this.myPlayer.target) return true
+    },
+    targetVisible(target){
+      if(this.currentTime == 'night' && this.myPlayer.role == 'detective'){
+        // if(this.myPlayer.target == 'undefined') return false
+
+        if(this.myPlayer.target[0] == target.name ) return true
+        if(this.myPlayer.target[1] == target.name ) return true
+      }
+      
+
+      if(this.myPlayer.target == target.name){
+        return true
+      }
+
+      return false
+    },
+    
 
     // important----------------------------------------------------
     ReciveTheData(){
@@ -1520,24 +1557,27 @@ export default {
           let player = this.players[i]
           // everybody has to click yes, unless skip function
           player.waiting = false
+          player.ready = true
+          player.done = true
 
           if(this.skipTheFirstStep){
             player.waiting = true
           }  
 
-          if(player.team == 'wolves'){
-            // player
-            // player.ready = false
-            // player.done = false
-            player.waiting = false
-          }
-
-          if(player.role == 'seer'){
+          if(this.nightMove(player.role) && player.role !== 'werewolf'){
             // player
             player.ready = false
             player.done = false
             player.waiting = false
           }
+
+          if(player.team == 'wolves'){
+            player.ready = true
+            player.done = true
+            // player.waiting = false
+          }
+
+          
         }
 
         return
@@ -1582,9 +1622,8 @@ export default {
         return
       }
 
-      // showing the message and toggle
       if(this.latestData.isDayOver){
-        console.log('toggle for the message the result action')
+        console.log('going to night rihht?')
         
         for(let i in this.players){
           let player = this.players[i]
@@ -1593,7 +1632,7 @@ export default {
           player.waiting = false
           // player.waiting = false
 
-          if(player.role == 'villager' || player.role == 'fool'){
+          if(!this.nightMove(player.role)){
             player.waiting = false
             player.ready = true
             player.done = true
@@ -1703,6 +1742,26 @@ export default {
         }
         this.message = `You are chosing "${target.name}" `
         this.myPlayer.target = target.name
+        return
+      }
+
+      if(this.myPlayer.role == 'detective'){
+        this.message = 'choosing at least'
+        if(this.myPlayer.target == ''){
+          this.myPlayer.target = []
+          this.myPlayer.target.push(target.name)
+        }else if(this.myPlayer.target.includes(target.name)){
+          this.myPlayer.target.splice(this.myPlayer.target.indexOf(target.name), 1)
+        }else if(this.myPlayer.target.length == 1){
+          this.myPlayer.target.push(target.name)
+        }else if(this.myPlayer.target.length == 2){
+          this.myPlayer.target[0] = this.myPlayer.target[1]
+          this.myPlayer.target[1] = target.name
+        }
+
+        
+        // this.message = `You are chosing "${target.name}" `
+        // this.myPlayer.target = target.name
         
         // this.myPlayer.seerList.push(target.name)
         // this.myPlayer.done = true
@@ -1729,6 +1788,7 @@ export default {
         return
       }
       if(this.myPlayer.role == 'seer'){
+        
         let target = this.players[this.myPlayer.target]
         this.message = `"${target.name}" is ${target.role}`
         this.myPlayer.seerList.push(target.name)
@@ -1737,6 +1797,24 @@ export default {
         return
       }
 
+      if(this.myPlayer.role == 'detective'){
+        let target1 = this.players[this.myPlayer.target[0]]
+        let target2 = this.players[this.myPlayer.target[1]]
+
+        if(target1.team == target2.team){
+          this.message = `${target1.name} and ${target2.name} are on the same team`
+        }else{
+          this.message = `${target1.name} and ${target2.name} are on the different team`
+        }
+
+        // this.myPlayer.seerList.push(target.name)
+        this.myPlayer.done = true
+        this.updatingData()
+        return
+      }
+
+      
+
       if(this.myPlayer.role == 'werewolf'){
         let target = this.players[this.myPlayer.target]
         this.message = `"${target.name}" is your target`
@@ -1744,6 +1822,8 @@ export default {
         this.updatingData()
         return
       }
+
+      
     },
 
     clearLog(){
