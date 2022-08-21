@@ -71,11 +71,13 @@
 
                 <button v-if="myPlayer.done" @click="ready()" class="blink" style="width: 80px">Ready</button>
 
-                <button v-if="canIOpenChat()" @click="showingChat = true" class="purple-blink" style="width: 100px; margin-left: 20px; margin-right: 20px">Open Chat</button>
+                
 
                 <button v-if="!myPlayer.done && myPlayer.role !== 'loudmouth' && currentTime == 'night'" :style="[confirmCheck() ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
 
                 <button v-if="!myPlayer.done && currentTime == 'day'" :style="[confirmCheck() ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
+
+                <button v-if="canIOpenChat()" @click="showingChat = true" class="purple-blink" style="width: 100px; margin-left: 20px; margin-right: 20px">Open Chat</button>
 
                 <button v-if="!myPlayer.done && latestData.isNightOver && !latestData.isDayOver" :style="[myPlayer.target ? '' : '']" @click="myPlayer.target = 'skipping'" style="background-color: #8A2BE2; margin-left:10px; width: 80px" >Skip</button>
 
@@ -1733,12 +1735,6 @@ export default {
 
       if(this.myPlayer.role == 'seer'){
 
-        if(!target.alive){
-          this.message = 'Cannot choose the dead'
-          this.myPlayer.target = undefined
-          this.myPlayer.doneWihtNightAction = false
-          return 
-        }
         this.message = `You are chosing "${target.name}" `
         this.myPlayer.target = target.name
         return
@@ -1874,7 +1870,7 @@ export default {
 
 
       if(theTarget.role == 'loudmouth'){
-        this.officialLog = this.officialLog + `\n When ${theTarget.name} as a looudmouth was killed, the victim revealed ${theTarget.permanentTarget}'s role is ${this.players[theTarget.permanentTarget].role} '`
+        this.officialLog = this.officialLog + `\n When ${theTarget.name} as a looudmouth was killed, the victim revealed ${theTarget.permanentTarget}'s role is ${this.players[theTarget.permanentTarget].role}.`
       }
       // do the killing for the solios
 
@@ -1906,7 +1902,7 @@ export default {
         this.officialLog = `Villagers voted and killed ${target.name} succesfully.`
 
         if(target.role == 'loudmouth'){
-          this.officialLog = this.officialLog + `\n When ${target.name} as a looudmouth was killed, the victim revealed ${target.permanentTarget}'s role is ${this.players[target.permanentTarget].role} '`
+          this.officialLog = this.officialLog + `\n When ${target.name} as a looudmouth was killed, the victim revealed ${target.permanentTarget}'s role is ${this.players[target.permanentTarget].role}.`
         }
         
         // this.latestData.officialLog.push(`${theTarget.name} was killed`)
