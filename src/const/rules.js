@@ -13,6 +13,10 @@ export const rules = {
   
   sister: {team: 'villagers',description: `The sister is an ordinary villager, except it can see other players with the same role.`, winCondition: `They win when all Werewolves and Solo Killers are dead, but fools do not have to be dead.`,todo: ``} ,
 
+  handsomeprince: {team: 'villagers',description: `The Handsome Prince has no night actions. The first time the village try to lynch him, he survives and instead reveals his role.`, winCondition: `They win when all Werewolves and Solo Killers are dead, but fools do not have to be dead.`,todo: ``} ,
+
+  
+
   // ------------------------------------------------
   fool: {team: 'solos',description: 'The Fool has no special abilities besides talking and voting during the day.', winCondition: `The Fool wins the game if they are lynched by the village.`,todo: `You can't do anything at night`},
 

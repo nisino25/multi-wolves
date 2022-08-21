@@ -953,7 +953,7 @@ export default {
     },
     test(){
       
-      if(!this.skipTheFirstStep) return
+      // if(!this.skipTheFirstStep) return
       this.username = randomWords(); 
       this.modalStatus++
     },
@@ -1149,7 +1149,7 @@ export default {
       this.players = {}
       this.chatList = {}
       while(count < this.members.length){
-        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true, chatList: [],permanentTarget: '',}
+        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true, chatList: [],permanentTarget: '', revealedRole: false, firstTime: true,}
         this.chatList[this.members[count]] = []
         count++
       }
@@ -1261,7 +1261,7 @@ export default {
       
     },
     nightMove(role){
-      if(role == 'villager' || role == 'fool'  || role == 'sister'){
+      if(role == 'villager' || role == 'fool'  || role == 'sister' || role == 'handsomeprince' ){
         return false
       }
 
@@ -1670,6 +1670,10 @@ export default {
         if(target.role == 'sister') return true
       }
 
+      if(target.revealedRole){
+        return true
+      }
+
       return flag
 
     },
@@ -1871,7 +1875,11 @@ export default {
 
       if(theTarget.role == 'loudmouth'){
         this.officialLog = this.officialLog + `\n When ${theTarget.name} as a looudmouth was killed, the victim revealed ${theTarget.permanentTarget}'s role is ${this.players[theTarget.permanentTarget].role}.`
+
+        theTarget.revealedRole = true
+        this.players[theTarget.permanentTarget].revealedRole = true
       }
+
       // do the killing for the solios
 
       // clear the target ------------------
@@ -1899,14 +1907,26 @@ export default {
       // do the killing if there is nobody protecting them
       
       if(target){
+        if(target.role == 'handsomeprince' && target.firstTime){
+          this.officialLog = `Villagers decided to kill ${target.name}, but the target was handsome priince, and the target survived.`
+          target.firstTime = false
+          target.revealedRole = true
+
+          return 
+        }
         this.officialLog = `Villagers voted and killed ${target.name} succesfully.`
 
         if(target.role == 'loudmouth'){
           this.officialLog = this.officialLog + `\n When ${target.name} as a looudmouth was killed, the victim revealed ${target.permanentTarget}'s role is ${this.players[target.permanentTarget].role}.`
+
+          target.revealedRole = true
+          this.players[target.permanentTarget].revealedRole = true
         }
         
         // this.latestData.officialLog.push(`${theTarget.name} was killed`)
         target.alive = false 
+
+        
 
         if(target.role == 'fool'){
           this.winner = `${target.name} as a fool`

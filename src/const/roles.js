@@ -9,6 +9,7 @@ export const roles = {
     {team: 'villagers', name: 'detective', canMoveAtNight: true, default: true, doneWihtNightAction: false,},
     {team: 'villagers', name: 'loudmouth', canMoveAtNight: true, default: true, doneWihtNightAction: false,},
     {team: 'villagers', name: 'sister', canMoveAtNight: false, default: true, doneWihtNightAction: false,},
+    {team: 'villagers', name: 'handsomeprince', canMoveAtNight: false, default: true, doneWihtNightAction: false,},
 
   ],
 
