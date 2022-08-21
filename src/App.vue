@@ -953,7 +953,7 @@ export default {
     },
     test(){
       
-      // if(!this.skipTheFirstStep) return
+      if(!this.skipTheFirstStep) return
       this.username = randomWords(); 
       this.modalStatus++
     },
