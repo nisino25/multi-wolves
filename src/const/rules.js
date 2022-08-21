@@ -9,6 +9,10 @@ export const rules = {
 
   detective: {team: 'villagers',description: 'Each night, the detective selects two players. He will then see immediately if these two players are on the same team or not. If the players are on the same team', winCondition: `They win when all Werewolves and Solo Killers are dead, but fools do not have to be dead.`,todo: `Choose two players to see if the players are on the same team `} ,
 
+  loudmouth: {team: 'villagers',description: `The Loudmouth can select a player. That player's role will be revealed to everyone when the Loudmouth dies.`, winCondition: `They win when all Werewolves and Solo Killers are dead, but fools do not have to be dead.`,todo: `Choose your target to reveal their role when you die`} ,
+  
+  sister: {team: 'villagers',description: `The sister is an ordinary villager, except it can see other players with the same role.`, winCondition: `They win when all Werewolves and Solo Killers are dead, but fools do not have to be dead.`,todo: ``} ,
+
   // ------------------------------------------------
   fool: {team: 'solos',description: 'The Fool has no special abilities besides talking and voting during the day.', winCondition: `The Fool wins the game if they are lynched by the village.`,todo: `You can't do anything at night`},
 

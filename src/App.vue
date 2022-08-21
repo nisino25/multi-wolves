@@ -71,9 +71,11 @@
 
                 <button v-if="myPlayer.done" @click="ready()" class="blink" style="width: 80px">Ready</button>
 
-                <button v-if="canIOpenChat()" @click="showingChat = true" class="purple-blink" style="width: 100px; margin-left: 20px;">Open Chat</button>
+                <button v-if="canIOpenChat()" @click="showingChat = true" class="purple-blink" style="width: 100px; margin-left: 20px; margin-right: 20px">Open Chat</button>
 
-                <button v-if="!myPlayer.done " :style="[confirmCheck() ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
+                <button v-if="!myPlayer.done && myPlayer.role !== 'loudmouth' && currentTime == 'night'" :style="[confirmCheck() ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
+
+                <button v-if="!myPlayer.done && currentTime == 'day'" :style="[confirmCheck() ? '' : 'opacity: 0.4']" @click="confirm()" style="background-color: #6495ed; width:80px;" >Confirm</button>
 
                 <button v-if="!myPlayer.done && latestData.isNightOver && !latestData.isDayOver" :style="[myPlayer.target ? '' : '']" @click="myPlayer.target = 'skipping'" style="background-color: #8A2BE2; margin-left:10px; width: 80px" >Skip</button>
 
@@ -108,6 +110,7 @@
           <div>
             <template v-if="currentTime == 'night' && myPlayer.alive">
               <span>{{rules[myPlayer?.role]?.todo}} </span> <br>
+              <span v-if="myPlayer.role == 'loudmouth' && myPlayer.permanentTarget !== ''">You are choosing {{myPlayer.permanentTarget}} as your target  </span> <br>
               <span v-if="message" style="color:red">{{message}} <br></span>
 
               <span style='color:red' v-if="detailData.length == 1 && !latestData.isNightOver && myPlayer.team == 'wolves' && gameStatus !== 'ready' && !liveWaitingList.includes(username)">You cannot kill anyone at first night</span>
@@ -1144,7 +1147,7 @@ export default {
       this.players = {}
       this.chatList = {}
       while(count < this.members.length){
-        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true, chatList: [],}
+        this.players[this.members[count]] ={name: this.members[count], alive: true,role: '',team: '',target: '',targetedBy: 0, dayVotingTarget: '', doneVoting: true, seerList: [],done: true, waiting: false, sort: count,read: true, chatList: [],permanentTarget: '',}
         this.chatList[this.members[count]] = []
         count++
       }
@@ -1256,7 +1259,7 @@ export default {
       
     },
     nightMove(role){
-      if(role == 'villager' || role == 'fool'){
+      if(role == 'villager' || role == 'fool'  || role == 'sister'){
         return false
       }
 
@@ -1280,6 +1283,12 @@ export default {
 
         if(this.myPlayer.target[0] == target.name ) return true
         if(this.myPlayer.target[1] == target.name ) return true
+      }
+
+      if(this.currentTime == 'night' && this.myPlayer.role == 'loudmouth'){
+        // if(this.myPlayer.target == 'undefined') return false
+
+        if(this.myPlayer.permanentTarget == target.name ) return true
       }
       
 
@@ -1413,32 +1422,7 @@ export default {
 
                 
                 
-              }
-              // else if(!this.latestData.isDayOver){
-
-              //   console.log('showing the result again why/')
-
-                
-              //   // toggle for reading, and next step false
-              //   this.toggleWaitingList()
-
-                
-
-
-
-
-              //   // add more data
-              //   // this.detailData.push({nightLog: [], dayLog: [], isNightOver: false,isVotingOver:false, isDayOver: false, officialLog: [], waitingList:[],gameStatus: 'ready',winner: undefined})
-
-              //   // and send the data now
-              //   this.updatingWholeData()
-
-              //   return
-
-                
-                
-              // }
-              else if(this.latestData.isVotingOver){
+              }else if(this.latestData.isVotingOver){
 
                 console.log('advancing to the nth night')
                 this.latestData.isDayOver = true
@@ -1641,7 +1625,18 @@ export default {
               player.waiting = true
             }
             
-          } 
+          }
+          
+          if(player.role == 'loudmouth'){
+            player.waiting = false
+            player.ready = true
+            player.done = true
+
+            // if(this.skipTheFirstStep){
+            //   player.waiting = true
+            // }
+            
+          }
 
         }
 
@@ -1669,6 +1664,10 @@ export default {
         if(this.myPlayer.seerList?.includes(target.name)) return true
       }
 
+      if(this.myPlayer.role == 'sister'){
+        if(target.role == 'sister') return true
+      }
+
       return flag
 
     },
@@ -1692,7 +1691,7 @@ export default {
     clickingAPlayer(target){
       
       // if(!this.choosingNow) return
-      if(this.myPlayer?.done) return
+      if(this.myPlayer?.done && this.myPlayer.role !== 'loudmouth') return
       if(!this.myPlayer.alive) return
 
       
@@ -1758,6 +1757,27 @@ export default {
           this.myPlayer.target[0] = this.myPlayer.target[1]
           this.myPlayer.target[1] = target.name
         }
+
+        
+        // this.message = `You are chosing "${target.name}" `
+        // this.myPlayer.target = target.name
+        
+        // this.myPlayer.seerList.push(target.name)
+        // this.myPlayer.done = true
+
+        // this.updatingData()
+
+        
+
+        // this.myPlayer.target = target.name
+        // this.currentPlayer.doneWihtNightAction = true
+        return
+      }
+
+      if(this.myPlayer.role == 'loudmouth'){
+        // this.message = `Your target is ${target.name}`
+        this.myPlayer.permanentTarget = target.name
+        this.myPlayer.done = true
 
         
         // this.message = `You are chosing "${target.name}" `
@@ -1849,9 +1869,13 @@ export default {
 
 
       // do the killing if there is nobody protecting them
-      this.officialLog = `${theTarget.name} was killed`
+      this.officialLog = `${theTarget.name} was killed.`
       theTarget.alive = false 
 
+
+      if(theTarget.role == 'loudmouth'){
+        this.officialLog = this.officialLog + `\n When ${theTarget.name} as a looudmouth was killed, the victim revealed ${theTarget.permanentTarget}'s role is ${this.players[theTarget.permanentTarget].role} '`
+      }
       // do the killing for the solios
 
       // clear the target ------------------
@@ -1879,7 +1903,11 @@ export default {
       // do the killing if there is nobody protecting them
       
       if(target){
-        this.officialLog = `Villagers voted and killed ${target.name} succesfully`
+        this.officialLog = `Villagers voted and killed ${target.name} succesfully.`
+
+        if(target.role == 'loudmouth'){
+          this.officialLog = this.officialLog + `\n When ${target.name} as a looudmouth was killed, the victim revealed ${target.permanentTarget}'s role is ${this.players[target.permanentTarget].role} '`
+        }
         
         // this.latestData.officialLog.push(`${theTarget.name} was killed`)
         target.alive = false 
